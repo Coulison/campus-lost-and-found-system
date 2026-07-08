@@ -1,0 +1,17 @@
+---
+description: Jumpstart pipeline — turn a product idea into a PRD, user-flow, ADR, and design system
+alwaysApply: false
+---
+When asked to "jumpstart", "blueprint", or scaffold planning docs for a product idea, load and follow `.cursor/skills/workflow-orchestration/SKILL.md`.
+
+Cursor has no subagents, so run every step yourself in one thread, loading the named skill first before each step:
+- prd-authoring — development-ready prd.md
+- flow-graph — enriched flow.json
+- adr-authoring — adr.md
+- design-system-authoring — design-system.md
+
+Rules:
+- Create `output/<slug>/` (kebab-case slug of the idea) and pass file paths between steps.
+- Never hand-write the user flow. Render it: `python3 .cursor/skills/flow-graph/scripts/render_flow.py output/<slug>/flow.json`.
+- Each downstream doc reads the upstream artifact by path (ADR reads prd.md; design system reads prd.md + adr.md).
+- Write run.json listing every artifact produced.
