@@ -23,7 +23,7 @@ Testing strategy, CI/CD, observability/logging, security posture, scalability pl
 ## 8. Key Decisions (ADR entries)
 For the 3–6 most consequential choices, an entry each: **ADR-00n — <title>**: Context / Decision / Alternatives / Consequences.
 ## 9. Implementation Blueprint
-A phased plan that maps PRD features (FR ids) to build order and milestones, with dependencies. Phase 1 = thinnest end-to-end slice.
+A phased plan that maps PRD features (FR ids) to build order and milestones, with dependencies. Phase 1 = thinnest end-to-end slice. **If `output/<slug>/mvp-scope.md` exists, Phase 1 must equal its Build Now list exactly** (not a re-derived MVP) — read it, and put everything in its Parked list into Phase 2+. If it doesn't exist, derive Phase 1 from the PRD's own Scope & Phasing section as before.
 ## 10. Risks & Mitigations
 
 Be concrete: name actual technologies and versions where it matters, real numbers where the PRD gives them.

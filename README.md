@@ -48,15 +48,17 @@ Every run creates a self-contained folder `output/<slug>/` (where `<slug>` is a 
 | `user-flow.md` | The flow rendered as readable Markdown — numbered steps grouped by stage, `→` transitions and `⤷` decision branches, plus decision-points / exit-points / edge-cases sections. |
 | `adr.md` | **Architecture Decision Record** — recommended stack (with alternatives + tradeoffs), system design, long-term engineering choices, and a phased implementation blueprint that maps to the PRD's features. |
 | `design-system.md` | **Design system** — a UI approach fitted to the product, foundations with real contrast ratios, a component inventory with states, and design tokens aligned to the ADR's chosen frontend stack. |
+| `mvp-scope.md` | *(optional, `/scope` only)* **Time-boxed build plan** — effort-scored features, a protected critical demo path, a Build Now / Parked split, and a per-teammate task split, sized to your actual hours and headcount. |
 | `run.json` | A manifest listing every artifact path produced. |
 
-`/jumpstart` produces the first four (`intent` → `prd` → `flow` → `user-flow`). `/blueprint` produces all of them.
+`/jumpstart` produces the first four (`intent` → `prd` → `flow` → `user-flow`). `/blueprint` produces all of them except `mvp-scope.md`, which only runs when you explicitly call `/scope` — handy for a hackathon or code camp where you know your deadline and headcount up front. Run it any time after `/jumpstart`; if it exists before you run `/adr` or `/design-system`, both will build to it instead of the full PRD.
 
 ---
 
 ## Features
 
 - **Idea → four docs in one command.** PRD, user-flow, ADR, and design system, all cross-referenced by file path.
+- **Optional time-boxed MVP scoping.** `/scope <hours> <team_size>` triages the PRD's features against a real deadline and headcount — a protected critical path, a Build Now / Parked split with effort estimates, and a per-teammate task breakdown. Built for hackathons and code camps; downstream ADR and design-system generation automatically respect it if it exists.
 - **Development-ready depth, not summaries.** Per-feature acceptance criteria, a draftable data model, states & edge cases, and accessibility baked in as a first-class section.
 - **Deterministic diagrams.** The user flow is never hand-written by the model — it's rendered by a Python script from a schema-checked JSON graph, which removes structural/syntax hallucination entirely and keeps the flow format consistent.
 - **Read-only validator with a 1-retry loop.** A least-privilege reviewer checks each doc against its authoring checklist and returns `PASS` or a concrete `GAPS` list; the author fixes gaps exactly once (respecting free-tier rate limits).
@@ -147,19 +149,22 @@ Open your tool **at the repo root** and run one step or the whole pipeline:
 | Command | Does | Reads |
 |---|---|---|
 | `/jumpstart <idea>` | Builds the PRD + user-flow | your idea |
-| `/adr` | Builds the ADR | the latest `output/<slug>/prd.md` |
-| `/design-system` | Builds the design system | the latest `prd.md` + `adr.md` |
-| `/blueprint <idea>` | Builds all four documents end-to-end | your idea |
+| `/scope <hours> <team_size> [skill_level]` | Builds a time-boxed MVP plan | the latest `output/<slug>/prd.md` |
+| `/adr` | Builds the ADR | the latest `prd.md` (+ `mvp-scope.md` if present) |
+| `/design-system` | Builds the design system | the latest `prd.md` + `adr.md` (+ `mvp-scope.md` if present) |
+| `/blueprint <idea>` | Builds all four core documents end-to-end (never includes scoping) | your idea |
 
 **Examples**
 
 ```
 /jumpstart a mobile app for booking barangay health center appointments
 /blueprint a simple event RSVP tool for a campus org
+/scope 6 4 beginner
 ```
 
 - Use **`/blueprint`** for a complete one-shot run — it reads each artifact directly, so there's no "find the latest PRD" guessing.
 - Use the **`/jumpstart` → `/adr` → `/design-system`** chain when you want to review or edit the PRD before generating the downstream docs. (These standalone steps locate the most recent `output/<slug>/` run, so run `/jumpstart` first.)
+- On a deadline? Run **`/jumpstart` → `/scope <hours> <team_size>` → `/adr` → `/design-system`**. Scoping first means the ADR's Phase 1 and the design system's component list match what your team is actually building, not the full unscoped PRD.
 - In **Cursor** (no subagents) the same commands run single-agent via the `workflow-orchestration` skill; if your Cursor version doesn't surface `.cursor/commands`, just type "jumpstart &lt;idea&gt;" and the `.cursor/rules` guidance kicks in.
 
 ### Render a user flow standalone (no LLM)
@@ -233,6 +238,7 @@ devcon.agent-kit/
 │       ├── workflow-orchestration/SKILL.md   # runs the full pipeline single-agent if needed
 │       ├── prd-authoring/                    # SKILL.md + references/prd-template.md
 │       ├── flow-graph/                       # SKILL.md + references/flow-schema.json + scripts/render_flow.py
+│       ├── mvp-scoping/                      # SKILL.md + references/mvp-scope-template.md (optional, /scope)
 │       ├── adr-authoring/SKILL.md
 │       └── design-system-authoring/SKILL.md
 ├── adapters/                                 # ---- THIN PER-TOOL WIRING ----

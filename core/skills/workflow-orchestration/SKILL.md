@@ -17,3 +17,5 @@ Run these steps in order for a product idea. Create `output/<slug>/` (kebab-case
 8. **Manifest** — write `run.json` with all artifact paths.
 
 If the tool has subagents, delegate each step to a specialist. If not, do each step yourself, loading the named skill first. Individual entry points: PRD+flow only (steps 1–5), ADR only (step 6, requires prd.md), design system only (step 7, requires prd.md + adr.md).
+
+**Optional step — MVP scope:** between steps 3 and 4, a team on a deadline can run `/scope <hours> <team_size>` (loads `mvp-scoping`; requires `prd.md`) to write `mvp-scope.md`. This never runs automatically as part of `/jumpstart` or `/blueprint` — it's a deliberate, separate call. If it exists by the time steps 6–7 run, the ADR and design system treat it as the MVP boundary instead of re-deriving one from the PRD.

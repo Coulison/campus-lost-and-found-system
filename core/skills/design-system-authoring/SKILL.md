@@ -17,7 +17,7 @@ From the product type + personas: the interaction tone, density, and patterns th
 - **Spacing & layout** — base unit, spacing scale, grid/breakpoints.
 - **Radius, elevation, iconography.**
 ## 5. Components (inventory)
-Each component (`CMP-<name>`): purpose, variants, and ALL states (default, hover, focus, active, disabled, loading, error, empty). Cover at least: buttons, inputs, select, checkbox/radio, card, nav, modal/dialog, table/list, toast, and empty/loading/error states.
+Each component (`CMP-<name>`): purpose, variants, and ALL states (default, hover, focus, active, disabled, loading, error, empty). Cover at least: buttons, inputs, select, checkbox/radio, card, nav, modal/dialog, table/list, toast, and empty/loading/error states. **If `output/<slug>/mvp-scope.md` exists**, fully spec only the components its Build Now FRs actually need; components used solely by Parked FRs get a one-line stub (name + purpose only) instead of a full state inventory.
 ## 6. Accessibility Specifications
 Map each WCAG criterion from the PRD to a concrete, testable design rule: visible focus style, minimum target size (≥24×24 CSS px, 44px for primary touch), keyboard operability per component, form labels/errors, reduced-motion behavior, and non-color status indicators.
 ## 7. Patterns

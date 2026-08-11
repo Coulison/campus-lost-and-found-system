@@ -9,7 +9,7 @@ From the repo root:
 ```
 This symlinks into the repo root:
 - `.cursor/rules` → `jumpstart.mdc` (guidance the model auto-applies to jumpstart/blueprint requests)
-- `.cursor/commands` → the 4 commands (`/jumpstart`, `/adr`, `/design-system`, `/blueprint`)
+- `.cursor/commands` → the 5 commands (`/jumpstart`, `/scope`, `/adr`, `/design-system`, `/blueprint`)
 - `.cursor/skills/*` → `core/skills/*`
 - `AGENTS.md` → `core/AGENTS.md`
 

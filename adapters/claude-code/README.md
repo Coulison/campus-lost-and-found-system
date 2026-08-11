@@ -8,8 +8,8 @@ From the repo root:
 ./scripts/install.sh claude
 ```
 This symlinks into the repo root:
-- `.claude/agents` → the 6 subagents here (clarifier, prd-author, flow-architect, architect, designer, validator)
-- `.claude/commands` → the 4 slash commands (`/jumpstart`, `/adr`, `/design-system`, `/blueprint`)
+- `.claude/agents` → the 7 subagents here (clarifier, prd-author, flow-architect, scoper, architect, designer, validator)
+- `.claude/commands` → the 5 slash commands (`/jumpstart`, `/scope`, `/adr`, `/design-system`, `/blueprint`)
 - `.claude/skills/*` → `core/skills/*`
 - `CLAUDE.md` and `AGENTS.md` → `core/AGENTS.md`
 
