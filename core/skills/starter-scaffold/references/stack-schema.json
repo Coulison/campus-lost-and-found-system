@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["project_name", "frontend", "backend", "database"],
+  "properties": {
+    "project_name": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "frontend": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["react-vite", "nextjs", "plain-html", "other"] },
+        "notes": { "type": "string" }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["node-express", "none", "other"] },
+        "notes": { "type": "string" }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["json-file", "supabase", "none", "other"] },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

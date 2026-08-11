@@ -12,6 +12,8 @@ You coordinate specialists; you do not author documents yourself. Load the `work
 - @flow-architect → flow.json ; then run: python3 .opencode/skills/flow-graph/scripts/render_flow.py output/<slug>/flow.json
 - @scoper → mvp-scope.md (reads prd.md; needs hours + team_size from the caller) — optional, only on `/scope`
 - @architect → adr.md (reads prd.md, and mvp-scope.md if it exists) ; @validator once
+- @scaffolder → output/<slug>/starter/ (reads adr.md) — optional, only on `/starter-code`
 - @designer → design-system.md (reads prd.md + adr.md, and mvp-scope.md if it exists) ; @validator once
+- @pitch-writer → pitch-deck.md (reads prd.md + adr.md, and mvp-scope.md if it exists) — optional, only on `/pitch-deck`
 
-For `/jumpstart` do steps through the flow only. For `/blueprint` do all steps except scoping (scoping never runs automatically). For `/adr`, `/design-system`, and `/scope` run only that specialist against existing artifacts. Finish by writing run.json and replying with each artifact path + a 2-line summary each. No other preamble.
+For `/jumpstart` do steps through the flow only. For `/blueprint` do all steps except scoping, scaffolding, and the pitch deck (none of the three run automatically). For `/adr`, `/design-system`, `/scope`, `/starter-code`, and `/pitch-deck` run only that specialist against existing artifacts. Finish by writing run.json and replying with each artifact path + a 2-line summary each. No other preamble.
