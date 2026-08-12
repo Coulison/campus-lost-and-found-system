@@ -118,8 +118,8 @@ The fragile LLM step produces *checkable data* (nodes, edges, conditions, stages
 Clone the repo, then run the installer for your tool from the repo root. It symlinks the portable `core/` and your tool's adapter **into the repo root**, so the tool is runnable there directly.
 
 ```bash
-git clone https://github.com/kienserapio/devcon.agent-kit.git
-cd devcon.agent-kit
+git clone https://github.com/szndy/devcon-agent-kit-codecamp.git
+cd devcon-agent-kit-codecamp
 
 ./scripts/install.sh opencode      # or: claude | cursor | all
 ```
@@ -237,7 +237,7 @@ The PRD's feature specs use `Given/When/Then` acceptance criteria and a WCAG 2.2
 ## Directory structure
 
 ```
-devcon.agent-kit/
+devcon-agent-kit-codecamp/
 ├── README.md
 ├── scripts/install.sh                       # symlinks core + a tool's adapter INTO the repo root
 ├── core/                                     # ---- PORTABLE BRAIN (tool-agnostic) ----
