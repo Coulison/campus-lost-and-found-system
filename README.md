@@ -55,7 +55,7 @@ Every run creates a self-contained folder `output/<slug>/` (where `<slug>` is a 
 | `pitch-deck.md` | *(optional, `/pitch-deck` only)* **5-slide demo-day outline** — slide content + speaker notes (~3 min total), pitching what was actually built if `mvp-scope.md` exists. |
 | `run.json` | A manifest listing every artifact path produced. |
 
-`/jumpstart` produces the first four (`intent` → `prd` → `flow` → `user-flow`). `/blueprint` produces all of the core four plus `adr.md` and `design-system.md` — never `mvp-scope.md`, `starter/`, or `pitch-deck.md`, which only run when you explicitly call `/scope`, `/starter-code`, or `/pitch-deck`. Handy for a hackathon or code camp: scope first if you're on a deadline, scaffold once the stack is picked, and pitch once you know what actually shipped.
+`/jumpstart` produces the first four (`intent` → `prd` → `flow` → `user-flow`). `/blueprint` produces **everything** — the core four, plus `adr.md`, `starter/`, `design-system.md`, and `pitch-deck.md` — and adds `mvp-scope.md` too if you pass `hours` + `team_size` as extra arguments. Each of `/scope`, `/starter-code`, and `/pitch-deck` also still works standalone (e.g. to rescope after hand-editing the PRD, or regenerate the starter after tweaking the ADR) — they just read whatever's latest in `output/<slug>/` rather than requiring a fresh `/blueprint` run.
 
 ---
 
@@ -85,20 +85,23 @@ idea
   └─▶ intent.json      (clarifier — infers intent, records assumptions)
         └─▶ prd.md      (prd-author — loads the prd-authoring skill)
               └─▶ PASS | GAPS   (validator — read-only; author fixes gaps once)
-                    └─▶ flow.json        (flow-architect — enriched graph)
-                          └─▶ user-flow.md   (render_flow.py — deterministic, no LLM)
-                                └─▶ adr.md         (architect — reads prd.md)
-                                      └─▶ design-system.md   (designer — reads prd.md + adr.md)
-                                            └─▶ run.json      (manifest)
+                    └─▶ mvp-scope.md   (scoper — reads prd.md; only if hours+team_size given)
+                          └─▶ flow.json        (flow-architect — enriched graph)
+                                └─▶ user-flow.md   (render_flow.py — deterministic, no LLM)
+                                      └─▶ adr.md         (architect — reads prd.md, + mvp-scope.md if present)
+                                            └─▶ starter/       (scaffolder — reads adr.md)
+                                                  └─▶ design-system.md   (designer — reads prd.md + adr.md, + mvp-scope.md if present)
+                                                        └─▶ pitch-deck.md   (pitch-writer — reads prd.md + adr.md, + mvp-scope.md if present)
+                                                              └─▶ run.json      (manifest)
 ```
 
-Each step reads the previous artifact **by file path**, not by re-deriving from the idea — so downstream docs stay consistent with upstream ones.
+Each step reads the previous artifact **by file path**, not by re-deriving from the idea — so downstream docs stay consistent with upstream ones. `/jumpstart` runs only as far as `user-flow.md`; `/blueprint` runs the entire chain (the `mvp-scope.md` branch only if you pass `hours` + `team_size`); each of `/scope`, `/adr`, `/starter-code`, `/design-system`, and `/pitch-deck` runs just its own step against whatever's already on disk.
 
 ### The three building blocks
 
-- **Skills** (`core/skills/*/SKILL.md`) — the reusable know-how: how to author a PRD, how to model a flow, how to write an ADR, how to design a system, and how to orchestrate the whole pipeline. These are the portable brain.
-- **Agents** (`adapters/<tool>/…`) — narrow specialists (`clarifier`, `prd-author`, `flow-architect`, `architect`, `designer`, `validator`) plus, in OpenCode, a primary `jumpstart` orchestrator. Each has a single responsibility and a minimal tool surface (the validator is read-only).
-- **Commands** — the slash commands (`/jumpstart`, `/adr`, `/design-system`, `/blueprint`) that kick off a whole run or a single step.
+- **Skills** (`core/skills/*/SKILL.md`) — the reusable know-how: how to author a PRD, how to model a flow, how to scope an MVP, how to write an ADR, how to scaffold a starter, how to design a system, how to draft a pitch deck, and how to orchestrate the whole pipeline. These are the portable brain.
+- **Agents** (`adapters/<tool>/…`) — narrow specialists (`clarifier`, `prd-author`, `flow-architect`, `scoper`, `architect`, `scaffolder`, `designer`, `pitch-writer`, `validator`) plus, in OpenCode, a primary `jumpstart` orchestrator. Each has a single responsibility and a minimal tool surface (the validator is read-only).
+- **Commands** — the slash commands (`/jumpstart`, `/scope`, `/adr`, `/starter-code`, `/design-system`, `/pitch-deck`, `/blueprint`) that kick off a whole run or a single step.
 
 ### Why the flow is JSON-then-rendered
 
@@ -218,21 +221,22 @@ Open your tool **at the repo root** and run one step or the whole pipeline:
 | `/starter-code` | Generates a real runnable starter under `output/<slug>/starter/` | the latest `output/<slug>/adr.md` |
 | `/design-system` | Builds the design system | the latest `prd.md` + `adr.md` (+ `mvp-scope.md` if present) |
 | `/pitch-deck` | Builds a 5-slide demo outline with speaker notes | the latest `prd.md` + `adr.md` (+ `mvp-scope.md` if present) |
-| `/blueprint <idea>` | Builds the four core documents end-to-end (never scope, starter code, or pitch deck) | your idea |
+| `/blueprint <idea> [hours] [team_size] [skill_level]` | Builds **every** document end-to-end — PRD, user-flow, ADR, starter code, design system, and pitch deck. Adds MVP scope too if `hours` + `team_size` are given | your idea (+ optional scope numbers) |
 
 **Examples**
 
 ```
 /jumpstart a mobile app for booking barangay health center appointments
 /blueprint a simple event RSVP tool for a campus org
+/blueprint a simple event RSVP tool for a campus org 6 4 beginner
 /scope 6 4 beginner
 /starter-code
 /pitch-deck
 ```
 
-- Use **`/blueprint`** for a complete one-shot run — it reads each artifact directly, so there's no "find the latest PRD" guessing.
+- Use **`/blueprint`** for a complete one-shot run — it reads each artifact directly, so there's no "find the latest PRD" guessing. Add `hours` and `team_size` at the end (as in the second example above) to also get a time-boxed `mvp-scope.md`; leave them off and everything except scoping still runs — starter code and the pitch deck are always included.
 - Use the **`/jumpstart` → `/adr` → `/design-system`** chain when you want to review or edit the PRD before generating the downstream docs. (These standalone steps locate the most recent `output/<slug>/` run, so run `/jumpstart` first.)
-- **Running a code camp or hackathon?** `/jumpstart` → `/scope <hours> <team_size>` → `/adr` → `/starter-code` → `/design-system` → (build) → `/pitch-deck`. Scoping first means the ADR's Phase 1, the generated starter, and the design system's component list all match what the team is actually building — and the pitch deck at the end presents that real scope, not the original unscoped idea.
+- **Running a code camp or hackathon?** `/blueprint <idea> <hours> <team_size>` in one shot covers the whole thing — PRD, scope, flow, ADR, starter code, design system, and pitch deck, all sized to your real deadline. Prefer to review the PRD before committing to a stack? Run the standalone chain instead: `/jumpstart` → `/scope <hours> <team_size>` → `/adr` → `/starter-code` → `/design-system` → (build) → `/pitch-deck`. Either way, scoping before the ADR means the ADR's Phase 1, the generated starter, and the design system's component list all match what the team is actually building — and the pitch deck at the end presents that real scope, not the original unscoped idea.
 - In **Cursor** (no subagents) the same commands run single-agent via the `workflow-orchestration` skill; if your Cursor version doesn't surface `.cursor/commands`, just type "jumpstart &lt;idea&gt;" and the `.cursor/rules` guidance kicks in.
 
 ### Render a user flow standalone (no LLM)
@@ -375,29 +379,32 @@ Writes `output/campus-event-rsvp/design-system.md` (component inventory + real c
 
 ### One-shot alternative
 
-Steps 1, 3, and 5's ADR/design-system half can run in one command instead of separately:
+All five steps above can run in one command instead of separately:
 
 ```
-/blueprint a simple event RSVP tool for a campus org
+/blueprint a simple event RSVP tool for a campus org 6 4 beginner
 ```
 
-This produces `intent.json`, `prd.md`, `flow.json`, `user-flow.md`, `adr.md`, and `design-system.md` in one go — never `mvp-scope.md`, `starter/`, or `pitch-deck.md` (those stay opt-in via `/scope`, `/starter-code`, `/pitch-deck`, run separately as in the steps above).
+This produces `intent.json`, `prd.md`, `mvp-scope.md`, `flow.json`, `user-flow.md`, `adr.md`, `starter/`, `design-system.md`, and `pitch-deck.md` in one go. Drop the trailing `6 4 beginner` and it still produces everything **except** `mvp-scope.md` — `starter/` and `pitch-deck.md` are never opt-in inside `/blueprint`, only `mvp-scope.md` depends on whether you passed `hours` + `team_size`.
 
 ---
 
 ## Expected output in detail
 
-A finished `/blueprint` run looks like:
+A finished `/blueprint <idea> <hours> <team_size>` run looks like:
 
 ```
 output/
 └── barangay-health-appointment-app/
     ├── intent.json
     ├── prd.md
+    ├── mvp-scope.md          # only when hours + team_size were given
     ├── flow.json
     ├── user-flow.md
     ├── adr.md
+    ├── starter/
     ├── design-system.md
+    ├── pitch-deck.md
     └── run.json
 ```
 
