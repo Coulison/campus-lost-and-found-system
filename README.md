@@ -16,6 +16,7 @@ It's built for hackathons, workshops, and jumpstarting real projects: describe w
 - [Step-by-step: pick your path](#step-by-step-pick-your-path)
 - [Install](#install)
 - [Usage](#usage)
+- [Full walkthrough: build an example project](#full-walkthrough-build-an-example-project)
 - [Expected output in detail](#expected-output-in-detail)
 - [Models — fully agnostic](#models--fully-agnostic)
 - [Directory structure](#directory-structure)
@@ -243,6 +244,144 @@ python3 core/skills/flow-graph/scripts/render_flow.py output/<slug>/flow.json
 ```
 
 It validates the graph and writes `user-flow.md` beside it. If validation fails it prints the exact problem — fix the JSON and re-run; never edit the `.md` by hand.
+
+---
+
+## Full walkthrough: build an example project
+
+This section is the tutorial version of [Usage](#usage) — it follows **one concrete idea** from a single sentence to a runnable starter, showing **exactly where you type each command** and **exactly where the output lands**, with real generated content so you know what to expect.
+
+**Example idea:** *"a simple event RSVP tool for a campus org."*
+
+> **Where commands go:** every `/command` below is typed **inside your agent tool's own prompt** (OpenCode's or Claude Code's interactive session, or Cursor's chat panel) — **not** in a plain terminal. Open a terminal only to `cd` into the repo and launch the tool (`opencode`, `claude`, or opening the folder in Cursor); once the tool is running **at the repo root**, every step from here happens inside it.
+
+### Step 1 — Build the PRD + user flow
+
+At the repo root, launch your tool and type:
+
+```
+/jumpstart a simple event RSVP tool for a campus org
+```
+
+The tool runs the `clarifier` → `prd-author` → validator → `flow-architect` → renderer chain on its own (see [How it works](#how-it-works)). When it finishes, look in your **file explorer or a new terminal** — a folder has appeared at:
+
+```
+output/campus-event-rsvp/
+├── intent.json
+├── prd.md
+├── flow.json
+└── user-flow.md
+```
+
+(The exact folder name is a kebab-case slug of your idea, generated automatically — it won't always be `campus-event-rsvp` verbatim.)
+
+Open `prd.md` and `user-flow.md` in any editor (or `cat output/campus-event-rsvp/user-flow.md` in a terminal) to read them. Here's real output the deterministic renderer produces for a flow shaped like this project's RSVP logic:
+
+```markdown
+# User Flow — Campus Event RSVP
+
+> A student discovers a campus event and RSVPs, receiving a confirmation.
+
+**Legend:** `1.` step in sequence · `→` leads to · `⤷` decision branch
+
+## Stage: Discovery
+
+1. **Browse events** _(entry)_ — Student opens the app and sees a list of upcoming campus events.
+   → **Pick event**
+2. **Pick event** — Student taps an event to view details.
+   → **Seats available?**
+
+## Stage: RSVP
+
+3. **Seats available?** — System checks remaining capacity for the event.
+   - ⤷ *Yes* → **Confirm RSVP** — seats open
+   - ⤷ *No* → **Join waitlist** — event full
+4. **Confirm RSVP** — Student confirms attendance and receives a confirmation email.
+   → **RSVP confirmed**
+5. **Join waitlist** — Student is added to the waitlist and notified if a seat opens up.
+   → **Waitlisted**
+
+## Stage: Confirmation
+
+6. **RSVP confirmed** _(exit)_ — Student holds a confirmed seat and can view it under 'My Events'.
+7. **Waitlisted** _(exit)_ — Student is on the waitlist and will be notified automatically.
+```
+
+Read the PRD first — everything downstream (flow, ADR, design system, starter code) is built to match it. Edit `prd.md` by hand now if you want to change scope before continuing (never hand-edit `user-flow.md`; edit `flow.json` and re-render instead — see [Render a user flow standalone](#render-a-user-flow-standalone-no-llm)).
+
+### Step 2 — (optional) Scope it to your deadline
+
+Still inside your tool, at the repo root:
+
+```
+/scope 6 4 beginner
+```
+
+This reads the `prd.md` you just built and writes `output/campus-event-rsvp/mvp-scope.md` — a Build Now / Parked split sized for 6 hours and a 4-person beginner team. Every step after this one automatically respects it if it exists.
+
+### Step 3 — Build the ADR
+
+```
+/adr
+```
+
+Reads the latest `prd.md` (and `mvp-scope.md` if you ran Step 2). Writes `output/campus-event-rsvp/adr.md` — open it to see the recommended stack table, alternatives, and a phased blueprint.
+
+### Step 4 — Generate the runnable starter
+
+```
+/starter-code
+```
+
+Reads `adr.md` and writes real, runnable code to `output/campus-event-rsvp/starter/`. For a React + Node/Express + JSON-file stack, this looks like:
+
+```
+output/campus-event-rsvp/starter/
+├── frontend/
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx
+│       ├── index.css
+│       └── main.jsx
+├── backend/
+│   ├── package.json
+│   ├── server.js
+│   ├── db.js
+│   └── data/db.json
+├── .gitignore
+├── .env.example
+└── README.md
+```
+
+**To actually run it**, open a plain terminal (not the agent tool) and follow the exact commands the generated `starter/README.md` gives you, e.g.:
+
+```bash
+cd output/campus-event-rsvp/starter/frontend && npm install && npm run dev
+cd output/campus-event-rsvp/starter/backend && npm install && npm start   # then visit /api/health
+```
+
+You'll see the frontend dev server URL (e.g. `http://localhost:5173`) printed in that terminal — open it in a browser to see the generated hello-world page.
+
+### Step 5 — Design system and pitch deck
+
+```
+/design-system
+/pitch-deck
+```
+
+Writes `output/campus-event-rsvp/design-system.md` (component inventory + real contrast ratios, matching the ADR's frontend stack) and `output/campus-event-rsvp/pitch-deck.md` (a 5-slide demo-day outline). Both are plain Markdown — open them in any editor same as the rest.
+
+### One-shot alternative
+
+Steps 1, 3, and 5's ADR/design-system half can run in one command instead of separately:
+
+```
+/blueprint a simple event RSVP tool for a campus org
+```
+
+This produces `intent.json`, `prd.md`, `flow.json`, `user-flow.md`, `adr.md`, and `design-system.md` in one go — never `mvp-scope.md`, `starter/`, or `pitch-deck.md` (those stay opt-in via `/scope`, `/starter-code`, `/pitch-deck`, run separately as in the steps above).
 
 ---
 

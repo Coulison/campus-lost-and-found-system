@@ -76,14 +76,14 @@ def render(g):
 def main():
     if len(sys.argv) != 2: sys.exit("usage: render_flow.py <flow.json>")
     src = Path(sys.argv[1])
-    g = json.loads(src.read_text())
+    g = json.loads(src.read_text(encoding="utf-8"))
     errs = validate(g)
     if errs:
         print("FLOW GRAPH INVALID:")
         for e in errs: print("  -", e)
         sys.exit(1)
     dst = src.with_name("user-flow.md")
-    dst.write_text(render(g))
+    dst.write_text(render(g), encoding="utf-8")
     print(f"WROTE {dst}")
 
 if __name__ == "__main__":

@@ -64,7 +64,8 @@ def write_todo(dst_dir, layer, notes):
         f"The ADR chose something outside this kit's starter templates for {layer}.\n\n"
         f"**ADR notes:** {notes or '(none given — check adr.md directly)'}\n\n"
         f"Set this layer up by hand following your ADR's stack table, "
-        f"then delete this file once it's replaced with real code.\n"
+        f"then delete this file once it's replaced with real code.\n",
+        encoding="utf-8",
     )
     return [str(path)]
 
@@ -73,7 +74,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("usage: generate_scaffold.py <stack.json>")
     src = Path(sys.argv[1])
-    stack = json.loads(src.read_text())
+    stack = json.loads(src.read_text(encoding="utf-8"))
 
     errs = validate(stack)
     if errs:
@@ -142,14 +143,14 @@ def main():
 
     # --- shared files: .gitignore, .env.example, README.md ---
     gitignore = out_root / ".gitignore"
-    gitignore.write_text("node_modules/\n.env\ndist/\n.next/\n")
+    gitignore.write_text("node_modules/\n.env\ndist/\n.next/\n", encoding="utf-8")
     written.append(str(gitignore))
 
     if backend["kind"] == "node-express":
         env_lines = ["PORT=3001"] + env_lines
     if env_lines:
         env_file = out_root / ".env.example"
-        env_file.write_text("\n".join(env_lines) + "\n")
+        env_file.write_text("\n".join(env_lines) + "\n", encoding="utf-8")
         written.append(str(env_file))
 
     stack_summary = [
@@ -180,7 +181,8 @@ def main():
         "## Next steps\n"
         "1. Open your PRD (or mvp-scope.md) and pick your first feature.\n"
         "2. Replace the hello-world page/route with that feature.\n"
-        "3. Keep this README's run instructions accurate as you add real setup steps.\n"
+        "3. Keep this README's run instructions accurate as you add real setup steps.\n",
+        encoding="utf-8",
     )
     written.append(str(readme))
 
