@@ -13,6 +13,7 @@ It's built for hackathons, workshops, and jumpstarting real projects: describe w
 - [Features](#features)
 - [How it works](#how-it-works)
 - [Prerequisites](#prerequisites)
+- [Step-by-step: pick your path](#step-by-step-pick-your-path)
 - [Install](#install)
 - [Usage](#usage)
 - [Expected output in detail](#expected-output-in-detail)
@@ -110,6 +111,64 @@ The fragile LLM step produces *checkable data* (nodes, edges, conditions, stages
 - **Python 3** on your PATH (`python3`) — runs the deterministic flow renderer.
 - **A model API key.** For OpenCode, a free **OpenRouter** or **Groq** key works; authenticate with `opencode auth login`. (Claude Code / Cursor use their own model access.)
 - **git** + optionally the **GitHub CLI** (`gh`) if you plan to clone/fork.
+
+---
+
+## Step-by-step: pick your path
+
+Every path runs the exact same commands (`/jumpstart`, `/blueprint`, …) once set up — the only difference is **how you authenticate and pick a model**. Pick the one that matches what you have.
+
+### Option A — Free, no paid plan (OpenCode + a free model key)
+
+1. **Install OpenCode.** Follow [opencode.ai/docs](https://opencode.ai/docs) (one-line install script or `npm install -g opencode-ai`, per their docs).
+2. **Clone this repo and install the OpenCode adapter:**
+   ```bash
+   git clone https://github.com/szndy/devcon-agent-kit-codecamp.git
+   cd devcon-agent-kit-codecamp
+   ./scripts/install.sh opencode
+   ```
+3. **Get a free API key** from [OpenRouter](https://openrouter.ai/keys) or [Groq](https://console.groq.com/keys) — both offer free-tier models, no card required.
+4. **Authenticate OpenCode with that key:**
+   ```bash
+   opencode auth login
+   ```
+   Choose the matching provider (OpenRouter or Groq) and paste your key when prompted.
+5. **Launch OpenCode at the repo root:**
+   ```bash
+   opencode
+   ```
+6. **Pick a free model** inside OpenCode with `/models` (filter for free-tier OpenRouter/Groq models).
+7. **Run your first command:**
+   ```
+   /jumpstart a mobile app for booking barangay health center appointments
+   ```
+8. Your docs land in `output/<slug>/` — see [What it produces](#what-it-produces-expected-output).
+
+### Option B — Paid plan (Claude Code or Cursor subscription)
+
+No separate API key step — both tools use the model access that comes with your subscription.
+
+**Claude Code:**
+1. Install Claude Code and sign in with your Claude subscription: [docs.claude.com/en/docs/claude-code](https://docs.claude.com/en/docs/claude-code).
+2. Clone this repo and install the Claude Code adapter:
+   ```bash
+   git clone https://github.com/szndy/devcon-agent-kit-codecamp.git
+   cd devcon-agent-kit-codecamp
+   ./scripts/install.sh claude
+   ```
+3. Open Claude Code at the repo root (`claude`), then run `/jumpstart <your idea>` or `/blueprint <your idea>`.
+
+**Cursor:**
+1. Install [Cursor](https://cursor.com) and sign in with your subscription.
+2. Clone this repo and install the Cursor adapter:
+   ```bash
+   git clone https://github.com/szndy/devcon-agent-kit-codecamp.git
+   cd devcon-agent-kit-codecamp
+   ./scripts/install.sh cursor
+   ```
+3. Open the repo folder in Cursor, then type `/jumpstart <your idea>` in chat. If `.cursor/commands` doesn't surface slash commands in your Cursor version, just type plain text like `jumpstart <your idea>` — the `.cursor/rules` guidance picks it up.
+
+Either way, full command reference and examples are in [Usage](#usage); install details (what each installer creates, why it symlinks) are in [Install](#install) below.
 
 ---
 
