@@ -1,7 +1,7 @@
 ---
-description: Full pipeline — PRD, user flow, ADR, design system, starter code, and pitch deck (plus MVP scope if hours + team_size are given). Usage: /blueprint <idea> [hours] [team_size] [skill_level]
+description: Idea → development-ready PRD + user-flow markdown.
 agent: jumpstart
 ---
-Run the COMPLETE workflow-orchestration pipeline (every step, including starter code and the pitch deck; include MVP scoping too if hours and team_size are present below) for this idea:
+Run the pipeline through the user flow (steps 1–5) for this idea:
 
 $ARGUMENTS

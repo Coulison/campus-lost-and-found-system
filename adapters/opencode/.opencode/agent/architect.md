@@ -1,5 +1,5 @@
 ---
-description: Writes a complete Architecture Decision Record from a PRD — recommended stack with alternatives, system design, long-term engineering choices, and a phased implementation blueprint. Invoked by /adr or /blueprint.
+description: Writes a complete Architecture Decision Record from a PRD — recommended stack with alternatives, system design, long-term engineering choices, and a phased implementation blueprint. Invoked by /adr or /jumpstart.
 mode: subagent
 temperature: 0.2
 tools: { write: true, edit: true, bash: false, read: true }

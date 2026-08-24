@@ -1,5 +1,5 @@
 ---
-description: Writes a development-ready, accessible design system from a PRD and its ADR — a UI approach fitted to the product, foundations with real WCAG contrast ratios, a component inventory with states, and tokens aligned to the chosen frontend stack. Invoked by /design-system or /blueprint.
+description: Writes a development-ready, accessible design system from a PRD and its ADR — a UI approach fitted to the product, foundations with real WCAG contrast ratios, a component inventory with states, and tokens aligned to the chosen frontend stack. Invoked by /design-system or /jumpstart.
 mode: subagent
 temperature: 0.2
 tools: { write: true, edit: true, bash: false, read: true }

@@ -22,12 +22,12 @@ Run these steps in order for a product idea. Create `output/<slug>/` (kebab-case
 If the tool has subagents, delegate each step to a specialist. If not, do each step yourself, loading the named skill first.
 
 **Entry points:**
-- `/jumpstart <idea>` — steps 1–3, 5–6 only (PRD + flow; no scope, ADR, starter, design system, or pitch deck).
-- `/blueprint <idea> [hours] [team_size] [skill_level]` — every step above, end to end. Step 4 (MVP scope) only runs if `hours` and `team_size` are present in the arguments; steps 8 and 10 (starter scaffold, pitch deck) always run regardless.
+- `/blueprint <idea>` — steps 1–3, 5–6 only (PRD + flow; no scope, ADR, starter, design system, or pitch deck).
+- `/jumpstart <idea> [hours] [team_size] [skill_level]` — every step above, end to end. Step 4 (MVP scope) only runs if `hours` and `team_size` are present in the arguments; steps 8 and 10 (starter scaffold, pitch deck) always run regardless.
 - `/scope <hours> <team_size> [skill_level]` — step 4 alone; requires an existing `prd.md`.
 - `/adr` — step 7 alone; requires `prd.md`.
 - `/starter-code` — step 8 alone; requires `adr.md`.
 - `/design-system` — step 9 alone; requires `prd.md` + `adr.md`.
 - `/pitch-deck` — step 10 alone; requires `prd.md` + `adr.md`.
 
-Re-running `/scope`, `/starter-code`, or `/pitch-deck` standalone after a `/blueprint` run (e.g. to rescope after hand-editing the PRD, or regenerate the starter after tweaking the ADR) is always safe — each reads the latest artifacts fresh.
+Re-running `/scope`, `/starter-code`, or `/pitch-deck` standalone after a `/jumpstart` run (e.g. to rescope after hand-editing the PRD, or regenerate the starter after tweaking the ADR) is always safe — each reads the latest artifacts fresh.
