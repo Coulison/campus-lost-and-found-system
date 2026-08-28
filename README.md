@@ -11,13 +11,13 @@ A responsive, mobile-first, and zero-training digital lost-and-found platform en
 
 ---
 
-## 👥 Development Team & Credits
-
-This project was designed, architected, and built by:
-
+## 👥 Development Team: Diamond (3x) La Piece
+ 
+This project was designed, architected, and built by **Diamond (3x) La Piece**:
+ 
 | Developer | Role | Responsibilities |
 |---|---|---|
-| **👑 Vladimir Tadeo** | **Team Leader & System Architect** | Project leadership, system architecture, matching logic, and security compliance. |
+| **Vladimir Tadeo** | **Team Leader & System Architect** | Project leadership, system architecture, matching logic, and security compliance. |
 | **John Mark Robles** | **Fullstack & State Engineer** | State management, sub-2s search optimization, inventory data models, and persistence. |
 | **Justin Leonen** | **UI/UX & Frontend Specialist** | Mobile-first collegiate design system, QR verification modals, accessibility (WCAG 2.2 AA), and sound engine. |
 

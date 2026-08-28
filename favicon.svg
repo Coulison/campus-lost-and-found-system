@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Vibrant Mint & Teal Collegiate Gradients -->
+    <linearGradient id="mintGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5eead4" />
+      <stop offset="50%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+    
+    <linearGradient id="deepTealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d6e75" />
+      <stop offset="100%" stop-color="#042f2e" />
+    </linearGradient>
+
+    <linearGradient id="facetHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#99f6e4" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#2dd4bf" stop-opacity="0.3" />
+    </linearGradient>
+
+    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="50%" stop-color="#0d6e75" />
+      <stop offset="100%" stop-color="#14b8a6" />
+    </linearGradient>
+
+    <!-- Subtle Drop Shadow Filter for Tab Visibility -->
+    <filter id="vectorGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#2dd4bf" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <g filter="url(#vectorGlow)">
+    <!-- Outer Shield Frame -->
+    <path
+      d="M 256 32 
+         L 440 96 
+         L 440 280 
+         C 440 376, 356 446, 256 480 
+         C 156 446, 72 376, 72 280 
+         L 72 96 Z"
+      fill="url(#deepTealGrad)"
+      stroke="url(#shieldBorder)"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+
+    <!-- Inner Shield Inset Border -->
+    <path
+      d="M 256 68 
+         L 410 122 
+         L 410 270 
+         C 410 350, 338 412, 256 442 
+         C 174 412, 102 350, 102 270 
+         L 102 122 Z"
+      fill="#082329"
+      stroke="#174d5b"
+      stroke-width="6"
+      stroke-linejoin="round"
+      opacity="0.95"
+    />
+
+    <!-- Geometric Faceted X-Y-Z Monogram -->
+    
+    <!-- Letter Y (Top Central Fork) -->
+    <polygon points="256,120 286,170 340,120 380,145 304,225 304,290 256,290 256,225 180,145 220,120" fill="url(#mintGrad)" />
+    <!-- Y Facet Highlight -->
+    <polygon points="256,120 286,170 304,225 256,225" fill="url(#facetHighlight)" />
+
+    <!-- Letter X (Interlocking Left Diagonal) -->
+    <polygon points="140,165 190,165 240,240 160,360 110,360 195,240" fill="url(#mintGrad)" />
+    <polygon points="140,165 195,240 160,360 130,360" fill="url(#deepTealGrad)" opacity="0.6" stroke="#2dd4bf" stroke-width="2" />
+
+    <!-- Letter Z (Interlocking Base & Crossbars) -->
+    <polygon points="160,330 360,330 360,368 235,368 360,420 360,450 150,450 150,412 275,412 160,360" fill="url(#mintGrad)" />
+    <!-- Z Top Accent -->
+    <polygon points="160,330 360,330 340,350 180,350" fill="url(#facetHighlight)" />
+    <!-- Z Bottom Accent -->
+    <polygon points="150,412 275,412 250,432 150,432" fill="url(#facetHighlight)" />
+
+    <!-- Central Diamond Core / Crest Keystone -->
+    <polygon points="256,250 282,285 256,320 230,285" fill="#5eead4" stroke="#0d6e75" stroke-width="4" />
+  </g>
+</svg>

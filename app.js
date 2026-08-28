@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'https://esm.sh/react@18.2.0';
 import ReactDOM from 'https://esm.sh/react-dom@18.2.0/client';
 import htm from 'https://esm.sh/htm@3.1.1';
-import { playAlert, playClick, playTick } from './soundEngine.js';
 
 // Bind htm with React.createElement for zero-build JSX
 const html = htm.bind(React.createElement);
 
 // ==========================================
-// CONSTANTS & MOCK DATA
+// CONSTANTS & INITIAL DATA
 // ==========================================
 
 const CAMPUS_LOCATIONS = [
@@ -56,7 +55,7 @@ const INITIAL_ITEMS = [
     reportedBy: 'alex.rivers@university.edu',
     reporterName: 'Alex Rivers',
     contact: '555-0192',
-    status: 'matched', // Matched with FD-2041!
+    status: 'matched', // Matched with FD-2041
     matchedWithId: 'FD-2041',
     matchScore: 96,
     storageLocation: 'Campus Security Main Desk (HQ Locker #12)',
@@ -179,7 +178,7 @@ const TEAM_MEMBERS = [
     role: 'Project Leader & System Architect',
     isLeader: true,
     initials: 'VT',
-    avatarGradient: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+    avatarGradient: 'linear-gradient(135deg, #0284c7, #4f46e5)',
     bio: 'Leads full product architecture, sprint milestones, matching algorithms, and security guidelines for the campus asset recovery platform.',
     skills: ['Project Leadership', 'System Architecture', 'Security Protocols', 'React & State Design']
   },
@@ -189,8 +188,8 @@ const TEAM_MEMBERS = [
     role: 'Fullstack & State Engineer',
     isLeader: false,
     initials: 'JR',
-    avatarGradient: 'linear-gradient(135deg, #10b981, #06b6d4)',
-    bio: 'Engineered high-performance filtering systems, instant 2-second search pipelines, and inventory persistence algorithms.',
+    avatarGradient: 'linear-gradient(135deg, #059669, #0891b2)',
+    bio: 'Engineered high-performance filtering systems, instant sub-2-second search pipelines, and inventory persistence algorithms.',
     skills: ['Data Modeling', 'State Management', 'Search Optimization', 'Local Storage APIs']
   },
   {
@@ -199,8 +198,8 @@ const TEAM_MEMBERS = [
     role: 'UI/UX & Frontend Specialist',
     isLeader: false,
     initials: 'JL',
-    avatarGradient: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-    bio: 'Designed the mobile-first collegiate interface, accessibility compliance (WCAG 2.2 AA), QR-code pickup verification, and responsive modals.',
+    avatarGradient: 'linear-gradient(135deg, #d97706, #dc2626)',
+    bio: 'Designed the mobile-first collegiate interface, accessibility compliance (WCAG 2.2 AA), QR-code pickup verification, and Nielsen heuristics layout.',
     skills: ['UI/UX Design', 'Design Systems', 'Responsive Layouts', 'Interactive Micro-animations']
   }
 ];
@@ -209,7 +208,6 @@ const TEAM_MEMBERS = [
 // QR CODE GENERATOR (NATIVE VECTOR SVG)
 // ==========================================
 function renderPickupQRCode(tokenString) {
-  // Deterministic SVG QR-like matrix generator for pickup verification
   const size = 21;
   const hash = Array.from(tokenString).reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const matrix = [];
@@ -217,7 +215,6 @@ function renderPickupQRCode(tokenString) {
   for (let r = 0; r < size; r++) {
     const row = [];
     for (let c = 0; c < size; c++) {
-      // 3 Positioning Square Finder Patterns
       const isTopLeft = r < 7 && c < 7;
       const isTopRight = r < 7 && c >= size - 7;
       const isBottomLeft = r >= size - 7 && c < 7;
@@ -233,7 +230,6 @@ function renderPickupQRCode(tokenString) {
           row.push(0);
         }
       } else {
-        // Pseudo-random deterministic payload bits based on token hash
         const val = ((r * 7 + c * 13 + hash) % 3 === 0 || (r + c + hash) % 5 === 0) ? 1 : 0;
         row.push(val);
       }
@@ -256,7 +252,7 @@ function renderPickupQRCode(tokenString) {
                 y=${r * cellSize}
                 width=${cellSize}
                 height=${cellSize}
-                fill="#0f172a"
+                fill="#070d19"
               />`
             : null
         )
@@ -316,17 +312,74 @@ function CampusLostAndFoundApp() {
   const [claimSuccessToken, setClaimSuccessToken] = useState(null);
   const [activeMatchBanner, setActiveMatchBanner] = useState(true);
   const [showMatchModal, setShowMatchModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [confirmAdminAction, setConfirmAdminAction] = useState(null); // Heuristic #5: Error Prevention
 
-  // Form Submissions Loading State (simulating cloud storage & notification dispatch)
+  // Interactive Onboarding Guided Tour (Shows on startup)
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(() => {
+    try {
+      return localStorage.getItem('xyz_onboarding_dismissed') !== 'true';
+    } catch (e) {
+      return true;
+    }
+  });
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  const handleCloseOnboarding = () => {
+    if (dontShowAgain) {
+      try {
+        localStorage.setItem('xyz_onboarding_dismissed', 'true');
+      } catch (e) {}
+    }
+    setShowOnboardingGuide(false);
+    setOnboardingStep(0);
+  };
+
+  // Form Submissions Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Helper for sound triggers & toasts
-  const triggerToast = (msg, sound = 'bell') => {
-    playAlert(sound, 0.6);
+  // Search Input Ref for Keyboard Shortcut Focus (Nielsen Heuristic #7)
+  const searchInputRef = useRef(null);
+
+  // Trigger Toast Notification (Silent / No Audio)
+  const triggerToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Keyboard Shortcuts Listener (Nielsen Heuristic #3: User Freedom & #7: Flexibility)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Escape key closes any active modal
+      if (e.key === 'Escape') {
+        setSelectedItemForClaim(null);
+        setClaimSuccessToken(null);
+        setShowMatchModal(false);
+        setShowLoginModal(false);
+        setShowHelpModal(false);
+        setConfirmAdminAction(null);
+        setShowOnboardingGuide(false);
+      }
+      
+      // '/' key focuses search bar if not already in an input/textarea
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (currentView !== 'browse') {
+          setCurrentView('browse');
+        }
+        setTimeout(() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+          }
+        }, 50);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentView]);
 
   // Auto-Match detector: Check if logged in user has an active matched item
   const userMatchedPair = useMemo(() => {
@@ -338,11 +391,10 @@ function CampusLostAndFoundApp() {
     return { lost: userLost, found: foundMatch, score: userLost.matchScore || 95 };
   }, [items, user.email]);
 
-  // Fast Filtered Items (SLA < 2ms client search)
+  // Fast Filtered Items (Nielsen Heuristic #1 & #6)
   const filteredItems = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     return items.filter((item) => {
-      // Search query
       const matchesQuery =
         !query ||
         item.title.toLowerCase().includes(query) ||
@@ -350,17 +402,14 @@ function CampusLostAndFoundApp() {
         item.location.toLowerCase().includes(query) ||
         item.id.toLowerCase().includes(query);
 
-      // Category
       const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
 
-      // Status
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'lost' && item.type === 'lost') ||
         (statusFilter === 'found' && item.type === 'found') ||
         item.status === statusFilter;
 
-      // Location
       const matchesLocation = locationFilter === 'all' || item.location === locationFilter;
 
       return matchesQuery && matchesCategory && matchesStatus && matchesLocation;
@@ -370,6 +419,17 @@ function CampusLostAndFoundApp() {
       return 0;
     });
   }, [items, searchQuery, selectedCategory, statusFilter, locationFilter, sortBy]);
+
+  // Category counts map for recognition over recall
+  const categoryCounts = useMemo(() => {
+    const counts = { all: items.length };
+    CATEGORIES.forEach((cat) => {
+      if (cat.id !== 'all') {
+        counts[cat.id] = items.filter((it) => it.category === cat.id).length;
+      }
+    });
+    return counts;
+  }, [items]);
 
   // Statistics Metrics
   const stats = useMemo(() => {
@@ -401,9 +461,7 @@ function CampusLostAndFoundApp() {
     const marks = formData.get('marks');
 
     setIsSubmitting(true);
-    playClick(0.2);
 
-    // Simulate Cloud Storage & Real-time AI Matcher pipeline (800ms)
     setTimeout(() => {
       const newId = `LF-${Math.floor(1000 + Math.random() * 9000)}`;
       const newItem = {
@@ -424,12 +482,12 @@ function CampusLostAndFoundApp() {
 
       setItems([newItem, ...items]);
       setIsSubmitting(false);
-      triggerToast(`Report Logged! Tracking Lost Item ID: ${newId}`, 'bell');
+      triggerToast(`Report Logged! Tracking Lost Item ID: ${newId}`);
       setCurrentView('browse');
-    }, 850);
+    }, 700);
   };
 
-  // Report Found Item (with Photo Upload Simulation)
+  // Report Found Item (with Photo Upload)
   const [foundPhotoPreview, setFoundPhotoPreview] = useState(null);
 
   const handlePhotoSelect = (e) => {
@@ -456,7 +514,6 @@ function CampusLostAndFoundApp() {
     const marks = formData.get('marks');
 
     setIsSubmitting(true);
-    playClick(0.2);
 
     setTimeout(() => {
       const newId = `FD-${Math.floor(2000 + Math.random() * 8000)}`;
@@ -480,9 +537,9 @@ function CampusLostAndFoundApp() {
       setItems([newItem, ...items]);
       setIsSubmitting(false);
       setFoundPhotoPreview(null);
-      triggerToast(`Found Item Logged & Dispatched to Security Desk! ID: ${newId}`, 'zen');
+      triggerToast(`Found Item Logged & Dispatched to Security Desk! ID: ${newId}`);
       setCurrentView('browse');
-    }, 900);
+    }, 750);
   };
 
   // Claim Item Submission
@@ -491,7 +548,6 @@ function CampusLostAndFoundApp() {
     if (!selectedItemForClaim) return;
 
     setIsSubmitting(true);
-    playClick(0.2);
 
     setTimeout(() => {
       const token = `QR-${Math.floor(1000 + Math.random() * 9000)}-${selectedItemForClaim.id}`;
@@ -506,31 +562,31 @@ function CampusLostAndFoundApp() {
 
       setIsSubmitting(false);
       setClaimSuccessToken(token);
-      triggerToast('Claim Verified! Present your QR Code at Campus Security.', 'zen');
-    }, 700);
+      triggerToast('Claim Verified! Present your QR Code at Campus Security.');
+    }, 600);
   };
 
-  // Admin Actions: Approve / Return / Close
-  const handleAdminUpdateStatus = (itemId, newStatus) => {
-    playClick(0.2);
+  // Admin Actions: Confirmation before marking Returned (Heuristic #5: Error Prevention)
+  const confirmAndExecuteAdminStatus = () => {
+    if (!confirmAdminAction) return;
+    const { itemId, newStatus } = confirmAdminAction;
     setItems((prev) =>
       prev.map((it) => (it.id === itemId ? { ...it, status: newStatus } : it))
     );
-    triggerToast(`Item ${itemId} updated to status: ${newStatus.toUpperCase()}`, 'bell');
+    setConfirmAdminAction(null);
+    triggerToast(`Item ${itemId} updated to status: ${newStatus.toUpperCase()}`);
   };
 
-  // Campus Email Verification Login
+  // Campus Email Verification Login (Heuristic #9: Clear error recognition)
   const handleLoginSubmit = (e) => {
     e.preventDefault();
     const email = loginEmailInput.trim().toLowerCase();
     
-    // Strict Campus Domain Verification Check
     const allowedDomains = ['university.edu', 'campus.edu', 'alumni.edu', 'college.edu'];
     const isCampusEmail = allowedDomains.some((d) => email.endsWith(`@${d}`));
 
     if (!isCampusEmail) {
-      setLoginError(`Access Restricted: Please enter a verified campus email ending with @university.edu or @campus.edu.`);
-      playAlert('marimba', 0.5);
+      setLoginError(`Access Restricted: Email must end with a verified campus domain (@university.edu, @campus.edu, @college.edu).`);
       return;
     }
 
@@ -547,85 +603,98 @@ function CampusLostAndFoundApp() {
 
     setShowLoginModal(false);
     setLoginError('');
-    triggerToast(`Welcome back, ${formattedName}!`, 'zen');
+    triggerToast(`Welcome back, ${formattedName}!`);
   };
 
   return html`
     <div className="campus-app">
-      <!-- Toast Notification Bar -->
+      <!-- Toast Notification Bar (Heuristic #1: System Status) -->
       ${toastMessage ? html`
         <div style=${{
           position: 'fixed',
-          top: '1rem',
-          right: '1rem',
+          top: '1.25rem',
+          right: '1.25rem',
           zIndex: 2000,
-          background: '#0f172a',
-          color: '#ffffff',
+          background: '#1e293b',
+          color: '#f8fafc',
           padding: '0.85rem 1.25rem',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+          borderRadius: '10px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
           fontWeight: '600',
           fontSize: '0.9rem',
-          borderLeft: '4px solid #10b981',
+          borderLeft: '4px solid var(--primary)',
+          border: '1px solid #334155',
           animation: 'slideInDown 0.3s ease-out'
         }}>
-          <span>✨</span>
+          <span style=${{ color: 'var(--primary)', fontSize: '1.1rem' }}>ℹ️</span>
           <span>${toastMessage}</span>
         </div>
       ` : null}
 
       <!-- Top Header Navigation -->
       <header className="navbar">
-        <div className="brand-container" onClick=${() => { playClick(0.15); setCurrentView('dashboard'); }}>
-          <div className="brand-logo">🔍</div>
+        <div className="brand-container" onClick=${() => setCurrentView('dashboard')}>
+          <img src="./xyz_university_logo.jpg" alt="XYZ University Logo" className="brand-logo" style=${{ objectFit: 'cover', padding: 0 }} />
           <div className="brand-info">
-            <h1>Campus Lost & Found</h1>
-            <div className="brand-tagline">Centralized University Asset Recovery</div>
+            <h1>XYZ University</h1>
+            <div className="brand-tagline">Campus Lost & Found • Asset Recovery Platform</div>
           </div>
         </div>
 
         <nav className="nav-links">
           <button
             className=${`nav-btn ${currentView === 'dashboard' ? 'active' : ''}`}
-            onClick=${() => { playClick(0.15); setCurrentView('dashboard'); }}
+            onClick=${() => setCurrentView('dashboard')}
           >
             🏠 Hub
           </button>
           <button
             className=${`nav-btn ${currentView === 'browse' ? 'active' : ''}`}
-            onClick=${() => { playClick(0.15); setCurrentView('browse'); }}
+            onClick=${() => setCurrentView('browse')}
           >
             📋 Browse Inventory
           </button>
           <button
             className=${`nav-btn ${currentView === 'report-lost' ? 'active' : ''}`}
-            onClick=${() => { playClick(0.15); setCurrentView('report-lost'); }}
+            onClick=${() => setCurrentView('report-lost')}
           >
             🔴 Report Lost
           </button>
           <button
             className=${`nav-btn ${currentView === 'report-found' ? 'active' : ''}`}
-            onClick=${() => { playClick(0.15); setCurrentView('report-found'); }}
+            onClick=${() => setCurrentView('report-found')}
           >
             🟢 Report Found
           </button>
           
-          <!-- Role & Admin Switcher -->
+          <!-- Role & Admin Switcher: Only show Security Desk when security admin view is enabled -->
+          ${user.role === 'admin' ? html`
+            <button
+              className=${`nav-btn ${currentView === 'admin' ? 'active' : ''}`}
+              style=${{ color: 'var(--brand-mint)', borderColor: 'rgba(45, 212, 191, 0.4)', background: 'var(--primary-light)' }}
+              onClick=${() => setCurrentView('admin')}
+            >
+              🛡️ Security Desk
+            </button>
+          ` : null}
+
+          <!-- Help & Guide Button (Heuristic #10) -->
           <button
-            className=${`nav-btn ${currentView === 'admin' ? 'active' : ''}`}
-            onClick=${() => { playClick(0.15); setCurrentView('admin'); }}
+            className="nav-btn"
+            onClick=${() => setShowHelpModal(true)}
+            title="Lost & Found Help & Procedures"
           >
-            🛡️ Security Desk
+            ❓ Guide & FAQ
           </button>
 
           <button
             className=${`nav-btn ${currentView === 'about' ? 'active' : ''}`}
-            onClick=${() => { playClick(0.15); setCurrentView('about'); }}
+            onClick=${() => setCurrentView('about')}
           >
-            👥 About Us
+            👥 Team
           </button>
 
           <!-- User Role Demo Toggle -->
@@ -633,8 +702,10 @@ function CampusLostAndFoundApp() {
             <button
               className=${`role-pill ${user.role === 'student' ? 'active' : ''}`}
               onClick=${() => {
-                playClick(0.15);
                 setUser({ ...user, role: 'student' });
+                if (currentView === 'admin') {
+                  setCurrentView('dashboard');
+                }
                 triggerToast('Switched to Student / Faculty View');
               }}
               title="Student View"
@@ -644,7 +715,6 @@ function CampusLostAndFoundApp() {
             <button
               className=${`role-pill ${user.role === 'admin' ? 'admin-active' : ''}`}
               onClick=${() => {
-                playClick(0.15);
                 setUser({ ...user, role: 'admin' });
                 setCurrentView('admin');
                 triggerToast('Switched to Campus Security Admin View');
@@ -659,10 +729,7 @@ function CampusLostAndFoundApp() {
           ${user.isAuthenticated ? html`
             <button
               className="nav-btn nav-btn-highlight"
-              onClick=${() => {
-                playClick(0.15);
-                setShowLoginModal(true);
-              }}
+              onClick=${() => setShowLoginModal(true)}
               title=${user.email}
             >
               👤 ${user.name.split(' ')[0]}
@@ -670,10 +737,7 @@ function CampusLostAndFoundApp() {
           ` : html`
             <button
               className="nav-btn nav-btn-highlight"
-              onClick=${() => {
-                playClick(0.15);
-                setShowLoginModal(true);
-              }}
+              onClick=${() => setShowLoginModal(true)}
             >
               🔐 Campus Sign-In
             </button>
@@ -689,7 +753,7 @@ function CampusLostAndFoundApp() {
              ========================================================= -->
         ${currentView === 'dashboard' ? html`
           <div>
-            <!-- Smart Auto-Match Alert Banner -->
+            <!-- Smart Auto-Match Alert Banner (Heuristic #1) -->
             ${activeMatchBanner && userMatchedPair ? html`
               <div className="match-alert-banner">
                 <div className="match-alert-content">
@@ -707,17 +771,14 @@ function CampusLostAndFoundApp() {
                 <div style=${{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <button
                     className="match-action-btn"
-                    onClick=${() => {
-                      playClick(0.2);
-                      setShowMatchModal(true);
-                    }}
+                    onClick=${() => setShowMatchModal(true)}
                   >
-                    🔍 Review & Verify Match
+                    🔍 Review Match
                   </button>
                   <button
-                    style=${{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem', padding: '0.4rem' }}
+                    style=${{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem', padding: '0.4rem' }}
                     onClick=${() => setActiveMatchBanner(false)}
-                    title="Dismiss notification"
+                    title="Dismiss alert (Heuristic #3: User Freedom)"
                   >
                     ✕
                   </button>
@@ -729,33 +790,33 @@ function CampusLostAndFoundApp() {
             <div className="hero-action-grid">
               <div
                 className="action-card card-lost"
-                onClick=${() => { playClick(0.2); setCurrentView('report-lost'); }}
+                onClick=${() => setCurrentView('report-lost')}
               >
                 <div className="action-icon">🔴</div>
                 <div className="action-card-text">
                   <h3>Report a Lost Item</h3>
-                  <p>Lost your wallet, keys, laptop, or bottle? Broadcast it immediately to the campus network.</p>
+                  <p>Lost your wallet, keys, laptop, or bottle? Broadcast it immediately to the campus safety desk.</p>
                 </div>
               </div>
 
               <div
                 className="action-card card-found"
-                onClick=${() => { playClick(0.2); setCurrentView('report-found'); }}
+                onClick=${() => setCurrentView('report-found')}
               >
                 <div className="action-icon">🟢</div>
                 <div className="action-card-text">
                   <h3>Report a Found Item</h3>
-                  <p>Found something on campus? Upload a quick photo and specify the secure drop-off locker.</p>
+                  <p>Found something on campus? Upload a quick photo and specify the secure drop-off locker bin.</p>
                 </div>
               </div>
 
               <div
                 className="action-card card-browse"
-                onClick=${() => { playClick(0.2); setCurrentView('browse'); }}
+                onClick=${() => setCurrentView('browse')}
               >
                 <div className="action-icon">📋</div>
                 <div className="action-card-text">
-                  <h3>Browse Campus Items</h3>
+                  <h3>Browse Campus Inventory</h3>
                   <p>Search through ${stats.total} verified campus lost and found listings with instant filtering.</p>
                 </div>
               </div>
@@ -772,21 +833,21 @@ function CampusLostAndFoundApp() {
               </div>
               <div className="stat-box">
                 <div>
-                  <div className="stat-box-val" style=${{ color: '#10b981' }}>${stats.returnedCount}</div>
+                  <div className="stat-box-val" style=${{ color: 'var(--success)' }}>${stats.returnedCount}</div>
                   <div className="stat-box-label">Items Reunited</div>
                 </div>
                 <div className="stat-box-icon">🤝</div>
               </div>
               <div className="stat-box">
                 <div>
-                  <div className="stat-box-val" style=${{ color: '#8b5cf6' }}>${stats.matchedCount}</div>
+                  <div className="stat-box-val" style=${{ color: 'var(--accent-purple)' }}>${stats.matchedCount}</div>
                   <div className="stat-box-label">Smart Matches Found</div>
                 </div>
                 <div className="stat-box-icon">⚡</div>
               </div>
               <div className="stat-box">
                 <div>
-                  <div className="stat-box-val" style=${{ color: '#2563eb' }}>${stats.recoveryRate}%</div>
+                  <div className="stat-box-val" style=${{ color: 'var(--primary)' }}>${stats.recoveryRate}%</div>
                   <div className="stat-box-label">Campus Return Rate</div>
                 </div>
                 <div className="stat-box-icon">📈</div>
@@ -801,7 +862,7 @@ function CampusLostAndFoundApp() {
               <button
                 className="btn-claim btn-claim-secondary"
                 style=${{ width: 'auto', padding: '0.45rem 1rem' }}
-                onClick=${() => { playClick(0.15); setCurrentView('browse'); }}
+                onClick=${() => setCurrentView('browse')}
               >
                 View Full Directory (${stats.total}) →
               </button>
@@ -809,209 +870,39 @@ function CampusLostAndFoundApp() {
 
             <!-- Recent 3 Cards Grid -->
             <div className="items-grid">
-              ${items.slice(0, 3).map((item) => html`
-                <div key=${item.id} className="item-card">
-                  <div className="item-card-image-wrap">
-                    <img src=${item.photoUrl} alt=${item.title} className="item-card-img" />
-                    <span className=${`item-status-badge badge-${item.type}`}>
-                      ${item.type === 'lost' ? '🔴 Lost' : '🟢 Found'}
-                    </span>
-                    <span className="item-category-pill">
-                      ${CATEGORIES.find((c) => c.id === item.category)?.name || item.category}
-                    </span>
-                  </div>
+              ${items.slice(0, 3).map((item) => {
+                const isReturned = item.status === 'returned';
+                const isMatched = item.status === 'matched';
+                const isClaimed = item.status === 'claimed';
 
-                  <div className="item-card-body">
-                    <div className="item-card-title" title=${item.title}>${item.title}</div>
-                    <div className="item-card-desc">${item.description}</div>
-
-                    <div className="item-meta-row">
-                      <div className="item-meta-item">
-                        <span>📍</span> ${item.location.split('(')[0]}
-                      </div>
-                      <div className="item-meta-item">
-                        <span>📅</span> ${item.date}
-                      </div>
-                    </div>
-
-                    <div className="item-card-actions">
-                      <button
-                        className="btn-claim"
-                        onClick=${() => {
-                          playClick(0.2);
-                          setSelectedItemForClaim(item);
-                          setClaimSuccessToken(item.claimToken || null);
-                        }}
-                      >
-                        ${item.status === 'claimed' ? 'View QR Claim' : 'Claim This Item'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              `)}
-            </div>
-          </div>
-        ` : null}
-
-        <!-- =========================================================
-             VIEW 2: SEARCH & BROWSE INVENTORY (Fast 2-sec SLA)
-             ========================================================= -->
-        ${currentView === 'browse' ? html`
-          <div>
-            <div className="section-header">
-              <div className="section-title">
-                <span>📋</span> Campus Inventory & Listings
-                <span style=${{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                  (${filteredItems.length} records found)
-                </span>
-              </div>
-              <div style=${{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  className="nav-btn nav-btn-highlight"
-                  onClick=${() => { playClick(0.15); setCurrentView('report-lost'); }}
-                >
-                  + Report Lost
-                </button>
-                <button
-                  className="nav-btn"
-                  style=${{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}
-                  onClick=${() => { playClick(0.15); setCurrentView('report-found'); }}
-                >
-                  + Report Found
-                </button>
-              </div>
-            </div>
-
-            <!-- Smart Search & Facet Filters -->
-            <div className="search-filter-container">
-              <div className="search-input-row">
-                <div className="search-input-wrapper">
-                  <span className="search-input-icon">🔍</span>
-                  <input
-                    type="text"
-                    className="search-text-input"
-                    placeholder="Search by keyword, item name, location, ID (e.g. 'Hydro Flask', 'Library', 'LF-1092')..."
-                    value=${searchQuery}
-                    onChange=${(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                <select
-                  className="filter-select"
-                  value=${sortBy}
-                  onChange=${(e) => setSortBy(e.target.value)}
-                >
-                  <option value="newest">Sort: Newest First</option>
-                  <option value="oldest">Sort: Oldest First</option>
-                </select>
-              </div>
-
-              <!-- Multi-Facet Filter Chips -->
-              <div className="filter-pills-row">
-                <!-- Status Tab Filter -->
-                <div className="filter-tab-group">
-                  ${[
-                    { id: 'all', label: 'All Items' },
-                    { id: 'lost', label: '🔴 Lost' },
-                    { id: 'found', label: '🟢 Found' },
-                    { id: 'matched', label: '⚡ Matched' },
-                    { id: 'returned', label: '✓ Returned' }
-                  ].map((tab) => html`
-                    <button
-                      key=${tab.id}
-                      className=${`filter-tab ${statusFilter === tab.id ? 'active' : ''}`}
-                      onClick=${() => { playClick(0.15); setStatusFilter(tab.id); }}
-                    >
-                      ${tab.label}
-                    </button>
-                  `)}
-                </div>
-
-                <!-- Category Select -->
-                <select
-                  className="filter-select"
-                  value=${selectedCategory}
-                  onChange=${(e) => setSelectedCategory(e.target.value)}
-                >
-                  ${CATEGORIES.map((cat) => html`
-                    <option key=${cat.id} value=${cat.id}>${cat.icon} ${cat.name}</option>
-                  `)}
-                </select>
-
-                <!-- Location Select -->
-                <select
-                  className="filter-select"
-                  value=${locationFilter}
-                  onChange=${(e) => setLocationFilter(e.target.value)}
-                >
-                  <option value="all">📍 All Campus Locations</option>
-                  ${CAMPUS_LOCATIONS.map((loc) => html`
-                    <option key=${loc} value=${loc}>${loc}</option>
-                  `)}
-                </select>
-
-                ${(searchQuery || selectedCategory !== 'all' || statusFilter !== 'all' || locationFilter !== 'all') ? html`
-                  <button
-                    className="btn-xs btn-xs-outline"
-                    onClick=${() => {
-                      setSearchQuery('');
-                      setSelectedCategory('all');
-                      setStatusFilter('all');
-                      setLocationFilter('all');
-                    }}
-                  >
-                    Reset Filters
-                  </button>
-                ` : null}
-              </div>
-            </div>
-
-            <!-- Items Gallery -->
-            ${filteredItems.length === 0 ? html`
-              <div style=${{
-                background: 'var(--bg-card)',
-                padding: '3rem',
-                borderRadius: '18px',
-                textAlign: 'center',
-                border: '1px dashed var(--border-color)'
-              }}>
-                <div style=${{ fontSize: '3rem', marginBottom: '0.5rem' }}>🔍</div>
-                <h3 style=${{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No matching items found</h3>
-                <p style=${{ color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                  Try adjusting your search terms or filter categories.
-                </p>
-                <button
-                  className="btn-claim"
-                  style=${{ maxWidth: '200px', margin: '0 auto' }}
-                  onClick=${() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                    setStatusFilter('all');
-                    setLocationFilter('all');
-                  }}
-                >
-                  Clear All Filters
-                </button>
-              </div>
-            ` : html`
-              <div className="items-grid">
-                ${filteredItems.map((item) => html`
-                  <div key=${item.id} className="item-card">
+                return html`
+                  <div key=${item.id} className=${`item-card ${isReturned ? 'item-card-returned' : ''}`}>
                     <div className="item-card-image-wrap">
                       <img src=${item.photoUrl} alt=${item.title} className="item-card-img" />
-                      <span className=${`item-status-badge badge-${item.type}`}>
-                        ${item.type === 'lost' ? '🔴 Lost' : '🟢 Found'}
-                      </span>
-                      ${item.status === 'matched' ? html`
-                        <span className="item-status-badge badge-matched" style=${{ top: '2.5rem' }}>
+                      
+                      <!-- Crystal Clear Mutually-Exclusive Status Badge -->
+                      ${isReturned ? html`
+                        <span className="item-status-badge badge-returned">
+                          ✓ Returned & Closed
+                        </span>
+                      ` : isMatched ? html`
+                        <span className="item-status-badge badge-matched">
                           ⚡ Matched
                         </span>
-                      ` : null}
-                      ${item.status === 'returned' ? html`
-                        <span className="item-status-badge badge-returned" style=${{ top: '2.5rem' }}>
-                          ✓ Returned
+                      ` : isClaimed ? html`
+                        <span className="item-status-badge badge-claimed">
+                          🔑 Claim Pending
                         </span>
-                      ` : null}
+                      ` : item.type === 'lost' ? html`
+                        <span className="item-status-badge badge-lost">
+                          🔴 Lost Report
+                        </span>
+                      ` : html`
+                        <span className="item-status-badge badge-found">
+                          🟢 Found Property
+                        </span>
+                      `}
+
                       <span className="item-category-pill">
                         ${CATEGORIES.find((c) => c.id === item.category)?.name || item.category}
                       </span>
@@ -1034,21 +925,267 @@ function CampusLostAndFoundApp() {
                         <button
                           className="btn-claim"
                           onClick=${() => {
-                            playClick(0.2);
                             setSelectedItemForClaim(item);
                             setClaimSuccessToken(item.claimToken || null);
                           }}
                         >
-                          ${item.status === 'claimed'
+                          ${isClaimed
                             ? '🔑 View Claim QR'
-                            : item.status === 'returned'
+                            : isReturned
                             ? '✓ Item Returned'
                             : 'This is Mine (Claim)'}
                         </button>
                       </div>
                     </div>
                   </div>
-                `)}
+                `;
+              })}
+            </div>
+
+            <!-- Help Guide Summary Card (Heuristic #10: Help & Docs) -->
+            <div className="help-guide-card">
+              <div className="section-title" style=${{ fontSize: '1.15rem' }}>
+                <span>💡</span> How the Campus Recovery Process Works
+              </div>
+              <div className="help-guide-grid">
+                <div className="help-box">
+                  <h4>🔴 1. Report Missing Belongings</h4>
+                  <p>Submit details with distinguishing marks. The automated engine cross-checks incoming found items 24/7.</p>
+                </div>
+                <div className="help-box">
+                  <h4>🟢 2. Secure Drop-Off</h4>
+                  <p>Found something? Deposit it in designated campus safety locker bins across the library and halls.</p>
+                </div>
+                <div className="help-box">
+                  <h4>🎟️ 3. QR Claim Verification</h4>
+                  <p>Provide proof of ownership to generate a cryptographic pickup pass for security desk handover.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : null}
+
+        <!-- =========================================================
+             VIEW 2: SEARCH & BROWSE INVENTORY (Fast 2-sec SLA)
+             ========================================================= -->
+        ${currentView === 'browse' ? html`
+          <div>
+            <div className="section-header">
+              <div className="section-title">
+                <span>📋</span> Campus Inventory & Listings
+                <span style=${{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  (Showing ${filteredItems.length} of ${items.length} records)
+                </span>
+              </div>
+              <div style=${{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  className="nav-btn nav-btn-highlight"
+                  onClick=${() => setCurrentView('report-lost')}
+                >
+                  + Report Lost
+                </button>
+                <button
+                  className="nav-btn"
+                  style=${{ background: 'var(--success-light)', color: 'var(--success)', border: '1px solid rgba(52, 211, 153, 0.3)' }}
+                  onClick=${() => setCurrentView('report-found')}
+                >
+                  + Report Found
+                </button>
+              </div>
+            </div>
+
+            <!-- Smart Search & Facet Filters (Heuristic #6 & #7) -->
+            <div className="search-filter-container">
+              <div className="search-input-row">
+                <div className="search-input-wrapper">
+                  <span className="search-input-icon">🔍</span>
+                  <input
+                    ref=${searchInputRef}
+                    type="text"
+                    className="search-text-input"
+                    placeholder="Search by keyword, item name, location, ID (e.g. 'Hydro Flask', 'Library', 'LF-1092')..."
+                    value=${searchQuery}
+                    onChange=${(e) => setSearchQuery(e.target.value)}
+                  />
+                  <div className="search-shortcut-badge">
+                    <kbd>/</kbd>
+                  </div>
+                </div>
+
+                <select
+                  className="filter-select"
+                  value=${sortBy}
+                  onChange=${(e) => setSortBy(e.target.value)}
+                >
+                  <option value="newest">Sort: Newest First</option>
+                  <option value="oldest">Sort: Oldest First</option>
+                </select>
+              </div>
+
+              <!-- Multi-Facet Filter Chips with Count Badges (Heuristic #6) -->
+              <div className="filter-pills-row">
+                <!-- Status Tab Filter -->
+                <div className="filter-tab-group">
+                  ${[
+                    { id: 'all', label: 'All Items' },
+                    { id: 'lost', label: '🔴 Lost' },
+                    { id: 'found', label: '🟢 Found' },
+                    { id: 'matched', label: '⚡ Matched' },
+                    { id: 'returned', label: '✓ Returned' }
+                  ].map((tab) => html`
+                    <button
+                      key=${tab.id}
+                      className=${`filter-tab ${statusFilter === tab.id ? 'active' : ''}`}
+                      onClick=${() => setStatusFilter(tab.id)}
+                    >
+                      <span>${tab.label}</span>
+                    </button>
+                  `)}
+                </div>
+
+                <!-- Category Select -->
+                <select
+                  className="filter-select"
+                  value=${selectedCategory}
+                  onChange=${(e) => setSelectedCategory(e.target.value)}
+                >
+                  ${CATEGORIES.map((cat) => html`
+                    <option key=${cat.id} value=${cat.id}>
+                      ${cat.icon} ${cat.name} ${cat.id !== 'all' ? `(${categoryCounts[cat.id] || 0})` : ''}
+                    </option>
+                  `)}
+                </select>
+
+                <!-- Location Select -->
+                <select
+                  className="filter-select"
+                  value=${locationFilter}
+                  onChange=${(e) => setLocationFilter(e.target.value)}
+                >
+                  <option value="all">📍 All Campus Locations</option>
+                  ${CAMPUS_LOCATIONS.map((loc) => html`
+                    <option key=${loc} value=${loc}>${loc}</option>
+                  `)}
+                </select>
+
+                <!-- Reset Filters Button (Heuristic #3: User Freedom) -->
+                ${(searchQuery || selectedCategory !== 'all' || statusFilter !== 'all' || locationFilter !== 'all') ? html`
+                  <button
+                    className="btn-xs btn-xs-outline"
+                    style=${{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                    onClick=${() => {
+                      setSearchQuery('');
+                      setSelectedCategory('all');
+                      setStatusFilter('all');
+                      setLocationFilter('all');
+                    }}
+                  >
+                    ✕ Reset All Filters
+                  </button>
+                ` : null}
+              </div>
+            </div>
+
+            <!-- Items Gallery -->
+            ${filteredItems.length === 0 ? html`
+              <!-- Friendly Empty State (Heuristic #9) -->
+              <div style=${{
+                background: 'var(--bg-card)',
+                padding: '3.5rem 2rem',
+                borderRadius: '16px',
+                textAlign: 'center',
+                border: '1px dashed var(--border-color)'
+              }}>
+                <div style=${{ fontSize: '3rem', marginBottom: '0.75rem' }}>🔍</div>
+                <h3 style=${{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>No matching items found</h3>
+                <p style=${{ color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto 1.5rem', fontSize: '0.9rem' }}>
+                  We couldn't find any items matching your current filters. Try changing your search query or reset the filters.
+                </p>
+                <button
+                  className="btn-claim"
+                  style=${{ maxWidth: '220px', margin: '0 auto' }}
+                  onClick=${() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                    setStatusFilter('all');
+                    setLocationFilter('all');
+                  }}
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            ` : html`
+              <div className="items-grid">
+                ${filteredItems.map((item) => {
+                  const isReturned = item.status === 'returned';
+                  const isMatched = item.status === 'matched';
+                  const isClaimed = item.status === 'claimed';
+
+                  return html`
+                    <div key=${item.id} className=${`item-card ${isReturned ? 'item-card-returned' : ''}`}>
+                      <div className="item-card-image-wrap">
+                        <img src=${item.photoUrl} alt=${item.title} className="item-card-img" />
+                        
+                        <!-- Crystal Clear Mutually-Exclusive Status Badge -->
+                        ${isReturned ? html`
+                          <span className="item-status-badge badge-returned">
+                            ✓ Returned & Closed
+                          </span>
+                        ` : isMatched ? html`
+                          <span className="item-status-badge badge-matched">
+                            ⚡ Matched
+                          </span>
+                        ` : isClaimed ? html`
+                          <span className="item-status-badge badge-claimed">
+                            🔑 Claim Pending
+                          </span>
+                        ` : item.type === 'lost' ? html`
+                          <span className="item-status-badge badge-lost">
+                            🔴 Lost Report
+                          </span>
+                        ` : html`
+                          <span className="item-status-badge badge-found">
+                            🟢 Found Property
+                          </span>
+                        `}
+
+                        <span className="item-category-pill">
+                          ${CATEGORIES.find((c) => c.id === item.category)?.name || item.category}
+                        </span>
+                      </div>
+
+                      <div className="item-card-body">
+                        <div className="item-card-title" title=${item.title}>${item.title}</div>
+                        <div className="item-card-desc">${item.description}</div>
+
+                        <div className="item-meta-row">
+                          <div className="item-meta-item">
+                            <span>📍</span> ${item.location.split('(')[0]}
+                          </div>
+                          <div className="item-meta-item">
+                            <span>📅</span> ${item.date}
+                          </div>
+                        </div>
+
+                        <div className="item-card-actions">
+                          <button
+                            className="btn-claim"
+                            onClick=${() => {
+                              setSelectedItemForClaim(item);
+                              setClaimSuccessToken(item.claimToken || null);
+                            }}
+                          >
+                            ${isClaimed
+                              ? '🔑 View Claim QR'
+                              : isReturned
+                              ? '✓ Item Returned'
+                              : 'This is Mine (Claim)'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                })}
               </div>
             `}
           </div>
@@ -1059,18 +1196,34 @@ function CampusLostAndFoundApp() {
              ========================================================= -->
         ${currentView === 'report-lost' ? html`
           <div className="form-card">
+            <!-- Step Indicator (Heuristic #1) -->
+            <div className="form-step-indicator">
+              <div className="step-node active">
+                <div className="step-number">1</div>
+                <span>Item Details</span>
+              </div>
+              <span style=${{ color: 'var(--border-color)' }}>—</span>
+              <div className="step-node">
+                <div className="step-number">2</div>
+                <span>AI Match Broadcast</span>
+              </div>
+            </div>
+
             <div className="form-header">
               <span className="form-header-badge badge-lost-theme">🔴 Student & Faculty Report</span>
               <h2 className="form-title">Report a Lost Item</h2>
               <p className="form-subtitle">
-                Provide details to help security and good samaritans identify and return your missing belongings.
+                Provide details to help security and campus finders identify and return your missing belongings.
               </p>
             </div>
 
             <form onSubmit=${handleReportLostSubmit}>
               <div className="form-grid">
                 <div className="form-group form-group-full">
-                  <label className="form-label">Item Name / Title *</label>
+                  <label className="form-label">
+                    <span>Item Name / Title *</span>
+                    <span className="form-label-hint">Be concise and descriptive</span>
+                  </label>
                   <input
                     type="text"
                     name="title"
@@ -1120,7 +1273,10 @@ function CampusLostAndFoundApp() {
                 </div>
 
                 <div className="form-group form-group-full">
-                  <label className="form-label">Detailed Description</label>
+                  <label className="form-label">
+                    <span>Detailed Description</span>
+                    <span className="form-label-hint">Color, model, material, case</span>
+                  </label>
                   <textarea
                     name="description"
                     rows="3"
@@ -1130,7 +1286,10 @@ function CampusLostAndFoundApp() {
                 </div>
 
                 <div className="form-group form-group-full">
-                  <label className="form-label">Distinguishing Marks & Unique Verification Proof</label>
+                  <label className="form-label">
+                    <span>Distinguishing Marks & Verification Proof</span>
+                    <span className="form-label-hint">Helps verify ownership without doubt</span>
+                  </label>
                   <input
                     type="text"
                     name="marks"
@@ -1140,14 +1299,24 @@ function CampusLostAndFoundApp() {
                 </div>
               </div>
 
-              <button type="submit" disabled=${isSubmitting} className="btn-submit-form">
-                ${isSubmitting ? html`
-                  <div className="spinner"></div>
-                  <span>Transmitting & Running Auto-Matcher...</span>
-                ` : html`
-                  <span>📡 Broadcast Lost Report</span>
-                `}
-              </button>
+              <div style=${{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className="btn-claim btn-claim-secondary"
+                  style=${{ maxWidth: '140px' }}
+                  onClick=${() => setCurrentView('dashboard')}
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled=${isSubmitting} className="btn-submit-form">
+                  ${isSubmitting ? html`
+                    <div className="spinner"></div>
+                    <span>Transmitting & Running Auto-Matcher...</span>
+                  ` : html`
+                    <span>📡 Broadcast Lost Report</span>
+                  `}
+                </button>
+              </div>
             </form>
           </div>
         ` : null}
@@ -1157,6 +1326,19 @@ function CampusLostAndFoundApp() {
              ========================================================= -->
         ${currentView === 'report-found' ? html`
           <div className="form-card">
+            <!-- Step Indicator (Heuristic #1) -->
+            <div className="form-step-indicator">
+              <div className="step-node active">
+                <div className="step-number">1</div>
+                <span>Photo & Custody</span>
+              </div>
+              <span style=${{ color: 'var(--border-color)' }}>—</span>
+              <div className="step-node">
+                <div className="step-number">2</div>
+                <span>Locker Logged</span>
+              </div>
+            </div>
+
             <div className="form-header">
               <span className="form-header-badge badge-found-theme">🟢 Campus Good Samaritan</span>
               <h2 className="form-title">Report a Found Item</h2>
@@ -1168,7 +1350,10 @@ function CampusLostAndFoundApp() {
             <form onSubmit=${handleReportFoundSubmit}>
               <!-- Interactive Photo Dropzone Component -->
               <div className="form-group form-group-full" style=${{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Item Photo Upload *</label>
+                <label className="form-label">
+                  <span>Item Photo Upload *</span>
+                  <span className="form-label-hint">PNG, JPG, WEBP</span>
+                </label>
                 <div
                   className="photo-dropzone"
                   onClick=${() => document.getElementById('found-file-input').click()}
@@ -1182,7 +1367,7 @@ function CampusLostAndFoundApp() {
                   />
                   <div className="dropzone-icon">📷</div>
                   <div className="dropzone-text">Click or Drag & Drop photo here</div>
-                  <div className="dropzone-subtext">Supports PNG, JPG, WEBP up to 10MB</div>
+                  <div className="dropzone-subtext">Instant image preview for visual confirmation</div>
 
                   ${foundPhotoPreview ? html`
                     <div className="photo-preview-wrap" onClick=${(e) => e.stopPropagation()}>
@@ -1231,7 +1416,10 @@ function CampusLostAndFoundApp() {
                 </div>
 
                 <div className="form-group form-group-full">
-                  <label className="form-label">Physical Drop-Off / Custody Location *</label>
+                  <label className="form-label">
+                    <span>Physical Drop-Off / Custody Location *</span>
+                    <span className="form-label-hint">Where you physically deposited the item</span>
+                  </label>
                   <select name="dropOffLocation" required className="form-select">
                     ${DROP_OFF_LOCATIONS.map((drop) => html`
                       <option key=${drop} value=${drop}>${drop}</option>
@@ -1271,19 +1459,29 @@ function CampusLostAndFoundApp() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled=${isSubmitting}
-                className="btn-submit-form"
-                style=${{ background: '#10b981' }}
-              >
-                ${isSubmitting ? html`
-                  <div className="spinner"></div>
-                  <span>Compressing Photo & Dispatching to Security...</span>
-                ` : html`
-                  <span>✓ Submit Found Item & Notify Owners</span>
-                `}
-              </button>
+              <div style=${{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  className="btn-claim btn-claim-secondary"
+                  style=${{ maxWidth: '140px' }}
+                  onClick=${() => setCurrentView('dashboard')}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled=${isSubmitting}
+                  className="btn-submit-form"
+                  style=${{ background: 'var(--success)' }}
+                >
+                  ${isSubmitting ? html`
+                    <div className="spinner"></div>
+                    <span>Logging & Dispatching to Security...</span>
+                  ` : html`
+                    <span>✓ Submit Found Item & Notify Owners</span>
+                  `}
+                </button>
+              </div>
             </form>
           </div>
         ` : null}
@@ -1301,7 +1499,6 @@ function CampusLostAndFoundApp() {
               <button
                 className="btn-xs btn-xs-outline"
                 onClick=${() => {
-                  playClick(0.15);
                   setUser({ ...user, role: 'student' });
                   setCurrentView('dashboard');
                 }}
@@ -1321,21 +1518,21 @@ function CampusLostAndFoundApp() {
               </div>
               <div className="stat-box">
                 <div>
-                  <div className="stat-box-val" style=${{ color: '#f59e0b' }}>${stats.pendingClaims}</div>
+                  <div className="stat-box-val" style=${{ color: 'var(--warning)' }}>${stats.pendingClaims}</div>
                   <div className="stat-box-label">Pending Claim Verifications</div>
                 </div>
                 <div className="stat-box-icon">⏳</div>
               </div>
               <div className="stat-box">
                 <div>
-                  <div className="stat-box-val" style=${{ color: '#10b981' }}>${stats.returnedCount}</div>
+                  <div className="stat-box-val" style=${{ color: 'var(--success)' }}>${stats.returnedCount}</div>
                   <div className="stat-box-label">Successfully Returned</div>
                 </div>
                 <div className="stat-box-icon">✅</div>
               </div>
               <div className="stat-box">
                 <div>
-                  <div className="stat-box-val" style=${{ color: '#2563eb' }}>72%</div>
+                  <div className="stat-box-val" style=${{ color: 'var(--primary)' }}>72%</div>
                   <div className="stat-box-label">Locker Bay Capacity</div>
                 </div>
                 <div className="stat-box-icon">🏢</div>
@@ -1377,7 +1574,7 @@ function CampusLostAndFoundApp() {
                         <span style=${{
                           fontWeight: '700',
                           fontSize: '0.8rem',
-                          color: item.status === 'returned' ? '#10b981' : item.status === 'claimed' ? '#f59e0b' : '#2563eb'
+                          color: item.status === 'returned' ? 'var(--success)' : item.status === 'claimed' ? 'var(--warning)' : 'var(--primary)'
                         }}>
                           ${item.status.toUpperCase()}
                         </span>
@@ -1387,8 +1584,8 @@ function CampusLostAndFoundApp() {
                           ${item.status === 'claimed' ? html`
                             <button
                               className="btn-xs btn-xs-success"
-                              onClick=${() => handleAdminUpdateStatus(item.id, 'returned')}
-                              title="Mark verified & returned to student"
+                              onClick=${() => setConfirmAdminAction({ itemId: item.id, newStatus: 'returned', title: item.title, action: 'verify_pickup' })}
+                              title="Verify claim QR & mark returned"
                             >
                               ✓ Verify Pickup
                             </button>
@@ -1397,7 +1594,7 @@ function CampusLostAndFoundApp() {
                           ${item.status !== 'returned' ? html`
                             <button
                               className="btn-xs btn-xs-outline"
-                              onClick=${() => handleAdminUpdateStatus(item.id, 'returned')}
+                              onClick=${() => setConfirmAdminAction({ itemId: item.id, newStatus: 'returned', title: item.title, action: 'mark_returned' })}
                             >
                               Mark Returned
                             </button>
@@ -1420,10 +1617,10 @@ function CampusLostAndFoundApp() {
         ${currentView === 'about' ? html`
           <div className="team-showcase">
             <div className="team-header">
-              <span className="team-header-pill">🎓 Engineering & Product Team</span>
-              <h1 className="team-title">Meet the Creators of PomoFocus / Campus Lost & Found</h1>
+              <span className="team-header-pill">💎 Diamond (3x) La Piece</span>
+              <h1 className="team-title">Diamond (3x) La Piece</h1>
               <p className="team-subtitle">
-                Dedicated developers building mission-critical campus tools for asset tracking, workflow automation, and student productivity.
+                Engineering team behind XYZ University's Campus Lost & Found Platform — built for rapid asset recovery, automated similarity matching, and secure physical custody tracking.
               </p>
             </div>
 
@@ -1465,7 +1662,7 @@ function CampusLostAndFoundApp() {
               <button
                 className="btn-claim"
                 style=${{ maxWidth: '240px', margin: '0 auto' }}
-                onClick=${() => { playClick(0.15); setCurrentView('dashboard'); }}
+                onClick=${() => setCurrentView('dashboard')}
               >
                 ← Back to Campus Hub
               </button>
@@ -1476,7 +1673,7 @@ function CampusLostAndFoundApp() {
       </main>
 
       <!-- =========================================================
-           MODAL 1: CLAIM VERIFICATION & DYNAMIC QR PICKUP
+           MODAL 1: CLAIM VERIFICATION & DYNAMIC QR PICKUP (Heuristic #6)
            ========================================================= -->
       ${selectedItemForClaim ? html`
         <div className="modal-overlay" onClick=${() => { setSelectedItemForClaim(null); setClaimSuccessToken(null); }}>
@@ -1484,6 +1681,7 @@ function CampusLostAndFoundApp() {
             <button
               className="modal-close-btn"
               onClick=${() => { setSelectedItemForClaim(null); setClaimSuccessToken(null); }}
+              title="Close modal (Esc)"
             >
               ✕
             </button>
@@ -1496,7 +1694,7 @@ function CampusLostAndFoundApp() {
                   Pickup Verification Pass
                 </h2>
                 <p style=${{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                  Show this dynamic QR code at <strong>${selectedItemForClaim.storageLocation || 'Campus Security Main Desk'}</strong>.
+                  Show this dynamic QR pass at <strong>${selectedItemForClaim.storageLocation || 'Campus Security Main Desk'}</strong>.
                 </p>
 
                 <div className="qr-container">
@@ -1512,11 +1710,12 @@ function CampusLostAndFoundApp() {
                   fontSize: '0.85rem',
                   lineHeight: '1.6',
                   color: 'var(--text-secondary)',
-                  marginBottom: '1.5rem'
+                  marginBottom: '1.5rem',
+                  border: '1px solid var(--border-color)'
                 }}>
-                  <div>🏢 <strong>Drop-off Location:</strong> ${selectedItemForClaim.storageLocation || 'Campus Security Desk (HQ Locker #12)'}</div>
+                  <div>🏢 <strong>Custody Locker:</strong> ${selectedItemForClaim.storageLocation || 'Campus Security Desk (HQ Locker #12)'}</div>
                   <div>🕒 <strong>Security Desk Hours:</strong> Mon-Fri: 8:00 AM - 8:00 PM, Sat: 9:00 AM - 4:00 PM</div>
-                  <div>🪪 <strong>Requirement:</strong> Please bring your Student/Faculty ID card for physical handover.</div>
+                  <div>🪪 <strong>Requirement:</strong> Please present your Student/Faculty ID card for physical handover.</div>
                 </div>
 
                 <button
@@ -1527,13 +1726,13 @@ function CampusLostAndFoundApp() {
                 </button>
               </div>
             ` : html`
-              <!-- Claim Ownership Verification Questionnaire -->
+              <!-- Claim Ownership Verification Questionnaire (Recognition over Recall) -->
               <div>
                 <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.35rem', fontWeight: '800', marginBottom: '0.25rem' }}>
                   Claim Item: ${selectedItemForClaim.title}
                 </h2>
                 <p style=${{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                  To ensure security, please provide proof of ownership prior to generating your pickup pass.
+                  To prevent unauthorized pickups, describe identifying details prior to generating your pickup pass.
                 </p>
 
                 <div style=${{
@@ -1542,7 +1741,8 @@ function CampusLostAndFoundApp() {
                   background: 'var(--bg-card-subtle)',
                   padding: '0.85rem',
                   borderRadius: '12px',
-                  marginBottom: '1.25rem'
+                  marginBottom: '1.25rem',
+                  border: '1px solid var(--border-color)'
                 }}>
                   <img
                     src=${selectedItemForClaim.photoUrl}
@@ -1559,12 +1759,12 @@ function CampusLostAndFoundApp() {
                 <form onSubmit=${handleClaimSubmit}>
                   <div className="form-group" style=${{ marginBottom: '1.25rem' }}>
                     <label className="form-label">
-                      Describe Specific Identifying Proof (Passcode, Serial #, Stickers, Scratches) *
+                      <span>Specific Identifying Proof (Passcode, Serial #, Stickers, Scratches) *</span>
                     </label>
                     <textarea
                       required
                       rows="3"
-                      placeholder="e.g. My lockscreen is a picture of a golden retriever; it has a small scratch near the top right corner..."
+                      placeholder="e.g. My lockscreen wallpaper is a golden retriever; it has a small scratch near the top right corner..."
                       className="form-textarea"
                       value=${claimProofText}
                       onChange=${(e) => setClaimProofText(e.target.value)}
@@ -1582,14 +1782,24 @@ function CampusLostAndFoundApp() {
                     />
                   </div>
 
-                  <button type="submit" disabled=${isSubmitting} className="btn-submit-form">
-                    ${isSubmitting ? html`
-                      <div className="spinner"></div>
-                      <span>Verifying Claim Proof...</span>
-                    ` : html`
-                      <span>🎟️ Generate Pickup QR Code Pass</span>
-                    `}
-                  </button>
+                  <div style=${{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      className="btn-claim btn-claim-secondary"
+                      style=${{ maxWidth: '120px' }}
+                      onClick=${() => { setSelectedItemForClaim(null); setClaimSuccessToken(null); }}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" disabled=${isSubmitting} className="btn-submit-form">
+                      ${isSubmitting ? html`
+                        <div className="spinner"></div>
+                        <span>Verifying Claim Proof...</span>
+                      ` : html`
+                        <span>🎟️ Generate Pickup QR Pass</span>
+                      `}
+                    </button>
+                  </div>
                 </form>
               </div>
             `}
@@ -1598,7 +1808,7 @@ function CampusLostAndFoundApp() {
       ` : null}
 
       <!-- =========================================================
-           MODAL 2: AUTO-MATCH COMPARISON MODAL
+           MODAL 2: AUTO-MATCH COMPARISON REVIEW (Heuristic #1 & #6)
            ========================================================= -->
       ${showMatchModal && userMatchedPair ? html`
         <div className="modal-overlay" onClick=${() => setShowMatchModal(false)}>
@@ -1617,19 +1827,19 @@ function CampusLostAndFoundApp() {
             <!-- Side by Side Comparison Grid -->
             <div style=${{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
               <!-- User Lost Report -->
-              <div style=${{ border: '1px solid #ef4444', borderRadius: '12px', padding: '1rem', background: '#fef2f2' }}>
-                <span style=${{ fontSize: '0.75rem', fontWeight: '700', color: '#b91c1c' }}>YOUR LOST REPORT</span>
-                <h4 style=${{ margin: '0.35rem 0', color: '#0f172a' }}>${userMatchedPair.lost.title}</h4>
-                <div style=${{ fontSize: '0.8rem', color: '#475569' }}>📍 ${userMatchedPair.lost.location}</div>
-                <div style=${{ fontSize: '0.8rem', color: '#475569' }}>📅 Lost: ${userMatchedPair.lost.date}</div>
+              <div style=${{ border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: '12px', padding: '1rem', background: 'var(--danger-light)' }}>
+                <span style=${{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--danger)' }}>YOUR LOST REPORT</span>
+                <h4 style=${{ margin: '0.35rem 0', color: 'var(--text-primary)' }}>${userMatchedPair.lost.title}</h4>
+                <div style=${{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>📍 ${userMatchedPair.lost.location}</div>
+                <div style=${{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>📅 Lost: ${userMatchedPair.lost.date}</div>
               </div>
 
               <!-- Campus Found Report -->
-              <div style=${{ border: '1px solid #10b981', borderRadius: '12px', padding: '1rem', background: '#ecfdf5' }}>
-                <span style=${{ fontSize: '0.75rem', fontWeight: '700', color: '#047857' }}>FOUND ASSET LOGGED</span>
-                <h4 style=${{ margin: '0.35rem 0', color: '#0f172a' }}>${userMatchedPair.found.title}</h4>
-                <div style=${{ fontSize: '0.8rem', color: '#475569' }}>📍 ${userMatchedPair.found.location}</div>
-                <div style=${{ fontSize: '0.8rem', color: '#475569' }}>🏢 Drop-off: ${userMatchedPair.found.storageLocation}</div>
+              <div style=${{ border: '1px solid rgba(52, 211, 153, 0.4)', borderRadius: '12px', padding: '1rem', background: 'var(--success-light)' }}>
+                <span style=${{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--success)' }}>FOUND ASSET LOGGED</span>
+                <h4 style=${{ margin: '0.35rem 0', color: 'var(--text-primary)' }}>${userMatchedPair.found.title}</h4>
+                <div style=${{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>📍 ${userMatchedPair.found.location}</div>
+                <div style=${{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>🏢 Drop-off: ${userMatchedPair.found.storageLocation}</div>
               </div>
             </div>
 
@@ -1647,7 +1857,7 @@ function CampusLostAndFoundApp() {
       ` : null}
 
       <!-- =========================================================
-           MODAL 3: VERIFIED CAMPUS EMAIL LOGIN GATEWAY
+           MODAL 3: VERIFIED CAMPUS EMAIL LOGIN GATEWAY (Heuristic #9)
            ========================================================= -->
       ${showLoginModal ? html`
         <div className="modal-overlay" onClick=${() => setShowLoginModal(false)}>
@@ -1655,7 +1865,7 @@ function CampusLostAndFoundApp() {
             <button className="modal-close-btn" onClick=${() => setShowLoginModal(false)}>✕</button>
 
             <div style=${{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div className="login-icon-badge">🎓</div>
+              <div className="brand-logo" style=${{ margin: '0 auto 1rem', width: '56px', height: '56px', fontSize: '1.75rem' }}>🎓</div>
               <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: '800' }}>
                 Campus SSO Authentication
               </h2>
@@ -1666,9 +1876,9 @@ function CampusLostAndFoundApp() {
 
             ${loginError ? html`
               <div style=${{
-                background: '#fef2f2',
-                color: '#b91c1c',
-                border: '1px solid #fecaca',
+                background: 'var(--danger-light)',
+                color: 'var(--danger)',
+                border: '1px solid rgba(248, 113, 113, 0.4)',
                 padding: '0.75rem',
                 borderRadius: '8px',
                 fontSize: '0.8rem',
@@ -1691,7 +1901,7 @@ function CampusLostAndFoundApp() {
                   className="form-input"
                 />
                 <span style=${{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  Must end in <code>@university.edu</code> or <code>@campus.edu</code>
+                  Allowed domains: <code>@university.edu</code>, <code>@campus.edu</code>, <code>@college.edu</code>
                 </span>
               </div>
 
@@ -1699,9 +1909,9 @@ function CampusLostAndFoundApp() {
                 <span>🔐 Verify & Sign In</span>
               </button>
 
-              <div style=${{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                <div>Quick Demo Accounts:</div>
-                <div style=${{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.5rem' }}>
+              <div style=${{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <div style=${{ fontWeight: '600', marginBottom: '0.4rem' }}>Quick Evaluation Accounts:</div>
+                <div style=${{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                   <button
                     type="button"
                     className="btn-xs btn-xs-outline"
@@ -1723,11 +1933,347 @@ function CampusLostAndFoundApp() {
         </div>
       ` : null}
 
+      <!-- =========================================================
+           MODAL 4: CONFIRMATION PROMPT (Heuristic #5: Error Prevention)
+           ========================================================= -->
+      ${confirmAdminAction ? html`
+        <div className="modal-overlay" onClick=${() => setConfirmAdminAction(null)}>
+          <div className="modal-card" style=${{ maxWidth: '420px' }} onClick=${(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick=${() => setConfirmAdminAction(null)}>✕</button>
+
+            <div style=${{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <div style=${{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚠️</div>
+              <h3 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: '800' }}>
+                Confirm Custody Handover
+              </h3>
+              <p style=${{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
+                Are you sure you want to mark <strong>"${confirmAdminAction.title}"</strong> as <strong>RETURNED & CLOSED</strong>? This action archives the item record.
+              </p>
+            </div>
+
+            <div style=${{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn-claim btn-claim-secondary"
+                onClick=${() => setConfirmAdminAction(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-claim"
+                style=${{ background: 'var(--success)' }}
+                onClick=${confirmAndExecuteAdminStatus}
+              >
+                Confirm & Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      ` : null}
+
+      <!-- =========================================================
+           MODAL 5: HELP & GUIDELINES (Heuristic #10: Help & Documentation)
+           ========================================================= -->
+      ${showHelpModal ? html`
+        <div className="modal-overlay" onClick=${() => setShowHelpModal(false)}>
+          <div className="modal-card" onClick=${(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick=${() => setShowHelpModal(false)}>✕</button>
+
+            <div style=${{ marginBottom: '1.25rem' }}>
+              <div style=${{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <span style=${{ fontSize: '1.5rem' }}>📖</span>
+                <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: '800' }}>
+                  Campus Lost & Found Help Guide
+                </h2>
+              </div>
+              <p style=${{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Official campus procedures for asset reporting, custody storage, and physical pickup verification.
+              </p>
+            </div>
+
+            <div style=${{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.875rem' }}>
+              <div className="help-box">
+                <h4>🔴 Reporting Lost Property</h4>
+                <p>Submit your lost item with distinguishing marks (stickers, serial numbers, screen wallpapers). When someone logs a matching found item, you will see a similarity alert on your dashboard.</p>
+              </div>
+
+              <div className="help-box">
+                <h4>🟢 Turning in Found Property</h4>
+                <p>Upload a clear photo and take the item to a designated drop-off locker (Library Front Desk Bin A or Campus Security HQ Locker #12).</p>
+              </div>
+
+              <div className="help-box">
+                <h4>🎟️ Claiming & Physical Verification</h4>
+                <p>Click "Claim This Item", enter proof of ownership, and generate a dynamic QR Pickup Pass. Present this pass along with your campus ID card at the security desk.</p>
+              </div>
+
+              <div className="help-box">
+                <h4>⌨️ Keyboard Shortcuts</h4>
+                <p>Press <kbd>/</kbd> to quickly focus the inventory search bar. Press <kbd>Esc</kbd> to dismiss any open modal window.</p>
+              </div>
+            </div>
+
+            <div style=${{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                className="btn-xs btn-xs-outline"
+                style=${{ color: 'var(--brand-mint)', borderColor: 'var(--brand-mint)' }}
+                onClick=${() => {
+                  setShowHelpModal(false);
+                  setOnboardingStep(0);
+                  setShowOnboardingGuide(true);
+                }}
+              >
+                🚀 Launch Interactive Guided Tour
+              </button>
+              <button className="btn-claim" style=${{ maxWidth: '160px' }} onClick=${() => setShowHelpModal(false)}>
+                Got it, Close Guide
+              </button>
+            </div>
+          </div>
+        </div>
+      ` : null}
+
+      <!-- =========================================================
+           MODAL 6: INTERACTIVE ONBOARDING GUIDED TOUR (Automatic on open)
+           ========================================================= -->
+      ${showOnboardingGuide ? html`
+        <div className="modal-overlay" onClick=${handleCloseOnboarding}>
+          <div className="onboarding-card" onClick=${(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick=${handleCloseOnboarding} title="Close guide (Esc)">✕</button>
+
+            <!-- STEP 0: WELCOME & OVERVIEW -->
+            ${onboardingStep === 0 ? html`
+              <div>
+                <div style=${{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                  <img src="./xyz_university_logo.jpg" alt="XYZ University" style=${{ width: '64px', height: '64px', borderRadius: '12px', margin: '0 auto 0.75rem', display: 'block', border: '2px solid var(--brand-mint)', boxShadow: '0 4px 14px rgba(45, 212, 191, 0.3)' }} />
+                  <div className="onboarding-step-badge">✨ Welcome to XYZ University</div>
+                  <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.45rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    Campus Asset Recovery Hub
+                  </h2>
+                  <p style=${{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
+                    A centralized, smart platform designed to reunite students and faculty with their missing belongings fast.
+                  </p>
+                </div>
+
+                <div className="onboarding-feature-grid">
+                  <div className="onboarding-feature-item">
+                    <div className="onboarding-feature-icon">🔴</div>
+                    <div className="onboarding-feature-text">
+                      <h4>1. Report Lost</h4>
+                      <p>Log missing items with distinguishing marks.</p>
+                    </div>
+                  </div>
+
+                  <div className="onboarding-feature-item">
+                    <div className="onboarding-feature-icon">🟢</div>
+                    <div className="onboarding-feature-text">
+                      <h4>2. Drop-Off Found</h4>
+                      <p>Snap a photo & deposit in campus lockers.</p>
+                    </div>
+                  </div>
+
+                  <div className="onboarding-feature-item">
+                    <div className="onboarding-feature-icon">⚡</div>
+                    <div className="onboarding-feature-text">
+                      <h4>3. Auto-Matcher</h4>
+                      <p>Real-time AI matching & alerts on your Hub.</p>
+                    </div>
+                  </div>
+
+                  <div className="onboarding-feature-item">
+                    <div className="onboarding-feature-icon">🎟️</div>
+                    <div className="onboarding-feature-text">
+                      <h4>4. QR Pickup Pass</h4>
+                      <p>Verify ownership for secure desk pickup.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ` : null}
+
+            <!-- STEP 1: REPORTING LOST BELONGINGS -->
+            ${onboardingStep === 1 ? html`
+              <div>
+                <div className="onboarding-step-badge">Step 1 of 4 • Missing Property</div>
+                <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: '800' }}>
+                  🔴 How to Report a Lost Item
+                </h2>
+                <p style=${{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Lost your ID card, laptop, water bottle, or keys somewhere on campus?
+                </p>
+
+                <div className="onboarding-highlight-box">
+                  <div className="onboarding-highlight-icon">📝</div>
+                  <div style=${{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <strong>Tip:</strong> Always include <strong>Distinguishing Marks</strong> (such as laptop stickers, phone wallpapers, or scratches). This allows campus security to verify you are the legitimate owner.
+                  </div>
+                </div>
+
+                <div style=${{ background: 'var(--bg-card-subtle)', padding: '1rem', borderRadius: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <div>📍 <strong>Specify Campus Building:</strong> Choose Library, Science Hall, Gym, etc.</div>
+                  <div style=${{ marginTop: '0.4rem' }}>🤖 <strong>Automated Matching:</strong> The system continuously scans all new found reports in the background.</div>
+                </div>
+              </div>
+            ` : null}
+
+            <!-- STEP 2: REPORTING FOUND PROPERTY & CUSTODY -->
+            ${onboardingStep === 2 ? html`
+              <div>
+                <div className="onboarding-step-badge">Step 2 of 4 • Good Samaritan</div>
+                <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: '800' }}>
+                  🟢 Found Something on Campus?
+                </h2>
+                <p style=${{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Help your fellow students by logging found items into the custody network.
+                </p>
+
+                <div className="onboarding-highlight-box">
+                  <div className="onboarding-highlight-icon">📷</div>
+                  <div style=${{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <strong>Instant Photo Upload:</strong> Drag & drop a photo from your phone or laptop. Visual confirmation helps owners recognize their items immediately.
+                  </div>
+                </div>
+
+                <div style=${{ background: 'var(--bg-card-subtle)', padding: '1rem', borderRadius: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <div>🏢 <strong>Physical Drop-Off Locker:</strong> Deposit the item into designated bins at:</div>
+                  <ul style=${{ marginLeft: '1.25rem', marginTop: '0.35rem', lineHeight: '1.6' }}>
+                    <li><strong>Campus Security Desk:</strong> HQ Locker #12</li>
+                    <li><strong>University Library Front Desk:</strong> Custody Bin A</li>
+                  </ul>
+                </div>
+              </div>
+            ` : null}
+
+            <!-- STEP 3: SEARCH & KEYBOARD EFFICIENCY -->
+            ${onboardingStep === 3 ? html`
+              <div>
+                <div className="onboarding-step-badge">Step 3 of 4 • Rapid Discovery</div>
+                <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: '800' }}>
+                  🔍 Instant Inventory & Shortcuts
+                </h2>
+                <p style=${{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Query through verified university listings with multi-facet filters.
+                </p>
+
+                <div className="onboarding-highlight-box">
+                  <div className="onboarding-highlight-icon">⚡</div>
+                  <div style=${{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <strong>Sub-2-Second Search:</strong> Search by item title, campus hall, or tracking IDs (e.g. <code>LF-1092</code>, <code>FD-2041</code>).
+                  </div>
+                </div>
+
+                <div style=${{ background: 'var(--bg-card-subtle)', padding: '1rem', borderRadius: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <div>⌨️ <strong>Power Keyboard Shortcuts:</strong></div>
+                  <div style=${{ marginTop: '0.4rem' }}>• Press <kbd>/</kbd> anywhere to focus search immediately.</div>
+                  <div style=${{ marginTop: '0.3rem' }}>• Press <kbd>Esc</kbd> to close any active modal or pass.</div>
+                </div>
+              </div>
+            ` : null}
+
+            <!-- STEP 4: CLAIMING & QR PICKUP VOUCHER -->
+            ${onboardingStep === 4 ? html`
+              <div>
+                <div className="onboarding-step-badge">Step 4 of 4 • Handover Verification</div>
+                <h2 style=${{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: '800' }}>
+                  🎟️ Claiming & Physical Pickup
+                </h2>
+                <p style=${{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Reunite with your item securely at the Campus Security Desk.
+                </p>
+
+                <div className="onboarding-highlight-box">
+                  <div className="onboarding-highlight-icon">🛡️</div>
+                  <div style=${{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <strong>Dynamic QR Pickup Pass:</strong> Once your claim questionnaire is submitted, you receive a dynamic SVG QR code pass on your screen.
+                  </div>
+                </div>
+
+                <div style=${{ background: 'var(--bg-card-subtle)', padding: '1rem', borderRadius: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <div>🪪 <strong>What to Bring for Pickup:</strong></div>
+                  <div style=${{ marginTop: '0.3rem' }}>1. Your Digital QR Pass on your mobile device.</div>
+                  <div>2. Your official XYZ Student or Faculty ID card.</div>
+                </div>
+              </div>
+            ` : null}
+
+            <!-- Step Dots Indicator -->
+            <div className="onboarding-dots">
+              ${[0, 1, 2, 3, 4].map((stepIdx) => html`
+                <div
+                  key=${stepIdx}
+                  className=${`onboarding-dot ${onboardingStep === stepIdx ? 'active' : ''}`}
+                  onClick=${() => setOnboardingStep(stepIdx)}
+                  title=${`Go to step ${stepIdx + 1}`}
+                ></div>
+              `)}
+            </div>
+
+            <!-- Footer Controls -->
+            <div className="onboarding-footer">
+              <label style=${{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked=${dontShowAgain}
+                  onChange=${(e) => setDontShowAgain(e.target.checked)}
+                />
+                <span>Don't show on startup</span>
+              </label>
+
+              <div style=${{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                ${onboardingStep > 0 ? html`
+                  <button
+                    type="button"
+                    className="btn-claim btn-claim-secondary"
+                    style=${{ padding: '0.5rem 0.9rem' }}
+                    onClick=${() => setOnboardingStep(onboardingStep - 1)}
+                  >
+                    ← Back
+                  </button>
+                ` : html`
+                  <button
+                    type="button"
+                    className="btn-xs btn-xs-outline"
+                    onClick=${handleCloseOnboarding}
+                  >
+                    Skip Tour
+                  </button>
+                `}
+
+                ${onboardingStep < 4 ? html`
+                  <button
+                    type="button"
+                    className="btn-claim"
+                    style=${{ padding: '0.5rem 1.25rem' }}
+                    onClick=${() => setOnboardingStep(onboardingStep + 1)}
+                  >
+                    Next Step →
+                  </button>
+                ` : html`
+                  <button
+                    type="button"
+                    className="btn-claim"
+                    style=${{ padding: '0.5rem 1.25rem', background: 'var(--brand-mint)', color: 'var(--brand-teal-dark)' }}
+                    onClick=${handleCloseOnboarding}
+                  >
+                    🚀 Enter Campus Hub
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : null}
+
+
       <!-- Footer -->
       <footer className="app-footer">
         <div>Campus Lost & Found Platform • University Asset Recovery System</div>
         <div style=${{ marginTop: '0.4rem', fontSize: '0.8rem' }}>
-          Developed by <span className="footer-highlight">Vladimir Tadeo (Leader)</span>, John Mark Robles, and Justin Leonen
+          Crafted with Nielsen's 10 Usability Heuristics & WCAG 2.2 AA Accessibility Standards
+        </div>
+        <div style=${{ marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          Developed by Vladimir Tadeo (Leader), John Mark Robles, and Justin Leonen
         </div>
       </footer>
     </div>
