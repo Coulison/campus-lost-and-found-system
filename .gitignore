@@ -11,6 +11,10 @@
 /output/*
 !/output/.gitkeep
 
+# Environment variables & secrets
+.env
+*.pfx
+
 # OS / editor cruft
 .DS_Store
 .qodo/
