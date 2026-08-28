@@ -4,9 +4,9 @@
   "private": true,
   "description": "Campus Lost & Found Platform for XYZ University by Diamond (3x) La Piece",
   "scripts": {
+    "build": "node build.js",
     "dev": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File ./server.ps1",
-    "start": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File ./server.ps1",
-    "build": "echo 'Static React SPA zero-build ready for deployment'"
+    "start": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File ./server.ps1"
   },
   "keywords": [
     "react",
