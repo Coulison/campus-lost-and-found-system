@@ -325,6 +325,7 @@ function CampusLostAndFoundApp() {
   });
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleCloseOnboarding = () => {
     if (dontShowAgain) {
@@ -352,7 +353,7 @@ function CampusLostAndFoundApp() {
   // Keyboard Shortcuts Listener (Nielsen Heuristic #3: User Freedom & #7: Flexibility)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Escape key closes any active modal
+      // Escape key closes any active modal or mobile drawer
       if (e.key === 'Escape') {
         setSelectedItemForClaim(null);
         setClaimSuccessToken(null);
@@ -361,6 +362,7 @@ function CampusLostAndFoundApp() {
         setShowHelpModal(false);
         setConfirmAdminAction(null);
         setShowOnboardingGuide(false);
+        setMobileMenuOpen(false);
       }
       
       // '/' key focuses search bar if not already in an input/textarea
@@ -644,6 +646,7 @@ function CampusLostAndFoundApp() {
           </div>
         </div>
 
+        <!-- Desktop Navigation Links -->
         <nav className="nav-links">
           <button
             className=${`nav-btn ${currentView === 'dashboard' ? 'active' : ''}`}
@@ -743,7 +746,180 @@ function CampusLostAndFoundApp() {
             </button>
           `}
         </nav>
+
+        <!-- Mobile Quick Right Controls: Role Badge + Hamburger Button -->
+        <div style=${{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            className="hamburger-btn"
+            onClick=${() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+            aria-expanded=${mobileMenuOpen}
+          >
+            ${mobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
       </header>
+
+      <!-- Mobile Navigation Drawer Overlay & Panel -->
+      <div
+        className=${`mobile-drawer-overlay ${mobileMenuOpen ? 'open' : ''}`}
+        onClick=${() => setMobileMenuOpen(false)}
+      ></div>
+
+      <aside className=${`mobile-nav-drawer ${mobileMenuOpen ? 'open' : ''}`}>
+        <div className="mobile-drawer-header">
+          <div style=${{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <img src="./xyz_university_logo.jpg" alt="Logo" style=${{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+            <span style=${{ fontWeight: '800', fontFamily: 'var(--font-heading)', color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+              XYZ Navigation
+            </span>
+          </div>
+          <button
+            className="hamburger-btn"
+            style=${{ display: 'flex', width: '34px', height: '34px', fontSize: '0.95rem' }}
+            onClick=${() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mobile-nav-list">
+          <button
+            className=${`mobile-nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick=${() => { setCurrentView('dashboard'); setMobileMenuOpen(false); }}
+          >
+            <span>🏠</span> Campus Hub
+          </button>
+          <button
+            className=${`mobile-nav-link ${currentView === 'browse' ? 'active' : ''}`}
+            onClick=${() => { setCurrentView('browse'); setMobileMenuOpen(false); }}
+          >
+            <span>📋</span> Browse Inventory
+          </button>
+          <button
+            className=${`mobile-nav-link ${currentView === 'report-lost' ? 'active' : ''}`}
+            onClick=${() => { setCurrentView('report-lost'); setMobileMenuOpen(false); }}
+          >
+            <span>🔴</span> Report Lost Item
+          </button>
+          <button
+            className=${`mobile-nav-link ${currentView === 'report-found' ? 'active' : ''}`}
+            onClick=${() => { setCurrentView('report-found'); setMobileMenuOpen(false); }}
+          >
+            <span>🟢</span> Drop-off Found Item
+          </button>
+          ${user.role === 'admin' ? html`
+            <button
+              className=${`mobile-nav-link ${currentView === 'admin' ? 'active' : ''}`}
+              style=${{ color: 'var(--brand-mint)' }}
+              onClick=${() => { setCurrentView('admin'); setMobileMenuOpen(false); }}
+            >
+              <span>🛡️</span> Security Custody Desk
+            </button>
+          ` : null}
+          <button
+            className="mobile-nav-link"
+            onClick=${() => { setShowHelpModal(true); setMobileMenuOpen(false); }}
+          >
+            <span>❓</span> Procedures & FAQ
+          </button>
+          <button
+            className=${`mobile-nav-link ${currentView === 'about' ? 'active' : ''}`}
+            onClick=${() => { setCurrentView('about'); setMobileMenuOpen(false); }}
+          >
+            <span>💎</span> Team Diamond (3x)
+          </button>
+        </div>
+
+        <div className="mobile-drawer-footer">
+          <div style=${{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Switch Role View
+          </div>
+          <div className="role-switcher-badge" style=${{ width: '100%', justifyContent: 'space-between', padding: '0.3rem' }}>
+            <button
+              className=${`role-pill ${user.role === 'student' ? 'active' : ''}`}
+              style=${{ flex: 1, textAlign: 'center', padding: '0.4rem 0.5rem' }}
+              onClick=${() => {
+                setUser({ ...user, role: 'student' });
+                if (currentView === 'admin') setCurrentView('dashboard');
+                triggerToast('Switched to Student View');
+              }}
+            >
+              🎓 Student
+            </button>
+            <button
+              className=${`role-pill ${user.role === 'admin' ? 'admin-active' : ''}`}
+              style=${{ flex: 1, textAlign: 'center', padding: '0.4rem 0.5rem' }}
+              onClick=${() => {
+                setUser({ ...user, role: 'admin' });
+                setCurrentView('admin');
+                triggerToast('Switched to Security Admin View');
+                setMobileMenuOpen(false);
+              }}
+            >
+              🛡️ Security
+            </button>
+          </div>
+
+          ${user.isAuthenticated ? html`
+            <button
+              className="btn-claim"
+              style=${{ width: '100%', padding: '0.65rem', fontSize: '0.85rem' }}
+              onClick=${() => { setShowLoginModal(true); setMobileMenuOpen(false); }}
+            >
+              👤 ${user.name} (Account)
+            </button>
+          ` : html`
+            <button
+              className="btn-claim"
+              style=${{ width: '100%', padding: '0.65rem', fontSize: '0.85rem' }}
+              onClick=${() => { setShowLoginModal(true); setMobileMenuOpen(false); }}
+            >
+              🔐 Campus Sign-In
+            </button>
+          `}
+        </div>
+      </aside>
+
+      <!-- Mobile Native-Feel Bottom Tab Dock -->
+      <nav className="mobile-bottom-dock">
+        <button
+          className=${`mobile-dock-tab ${currentView === 'dashboard' ? 'active' : ''}`}
+          onClick=${() => { setCurrentView('dashboard'); setMobileMenuOpen(false); }}
+        >
+          <span className="mobile-dock-icon">🏠</span>
+          <span className="mobile-dock-label">Hub</span>
+        </button>
+        <button
+          className=${`mobile-dock-tab ${currentView === 'browse' ? 'active' : ''}`}
+          onClick=${() => { setCurrentView('browse'); setMobileMenuOpen(false); }}
+        >
+          <span className="mobile-dock-icon">📋</span>
+          <span className="mobile-dock-label">Browse</span>
+        </button>
+        <button
+          className=${`mobile-dock-tab ${currentView === 'report-lost' ? 'active' : ''}`}
+          onClick=${() => { setCurrentView('report-lost'); setMobileMenuOpen(false); }}
+        >
+          <span className="mobile-dock-icon">🔴</span>
+          <span className="mobile-dock-label">Lost</span>
+        </button>
+        <button
+          className=${`mobile-dock-tab ${currentView === 'report-found' ? 'active' : ''}`}
+          onClick=${() => { setCurrentView('report-found'); setMobileMenuOpen(false); }}
+        >
+          <span className="mobile-dock-icon">🟢</span>
+          <span className="mobile-dock-label">Found</span>
+        </button>
+        <button
+          className=${`mobile-dock-tab ${mobileMenuOpen ? 'active' : ''}`}
+          onClick=${() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          <span className="mobile-dock-icon">☰</span>
+          <span className="mobile-dock-label">Menu</span>
+        </button>
+      </nav>
 
       <!-- Main Content Container -->
       <main className="app-container">
