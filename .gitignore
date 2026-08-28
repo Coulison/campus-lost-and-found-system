@@ -18,3 +18,5 @@
 # OS / editor cruft
 .DS_Store
 .qodo/
+.vercel
+node_modules/

@@ -1,0 +1,19 @@
+{
+  "name": "xyz-university-lost-and-found",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Campus Lost & Found Platform for XYZ University by Diamond (3x) La Piece",
+  "scripts": {
+    "dev": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File ./server.ps1",
+    "start": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File ./server.ps1",
+    "build": "echo 'Static React SPA zero-build ready for deployment'"
+  },
+  "keywords": [
+    "react",
+    "lost-and-found",
+    "xyz-university",
+    "diamond-3x-la-piece"
+  ],
+  "author": "Diamond (3x) La Piece",
+  "license": "MIT"
+}
